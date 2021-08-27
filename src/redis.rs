@@ -35,3 +35,14 @@ pub async fn zrevrange_by_score(max: u64, min: u64) -> Result<Vec<String>> {
 
     Ok(value)
 }
+
+pub async fn zremrange_by_score(max: u64) -> Result<u64> {
+    let mut conn = POOL.get().await?;
+
+    let value: u64 = cmd("ZREMRANGEBYSCORE")
+        .arg(&[TX_SORTED_SET.to_string(), "-inf".to_string(), max.to_string()])
+        .query_async::<_, u64>(&mut conn)
+        .await?;
+
+    Ok(value)
+}
