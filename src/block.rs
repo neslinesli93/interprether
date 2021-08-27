@@ -1,10 +1,10 @@
 use serde::{Deserialize, Serialize};
 use web3::types::H256;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Transaction {
-    hash: String,
-    message: String,
+    pub hash: String,
+    pub message: String,
 }
 
 impl Transaction {

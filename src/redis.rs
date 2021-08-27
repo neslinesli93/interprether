@@ -22,6 +22,18 @@ pub async fn zadd(score: u64, value: String) -> Result<(), RedisError> {
         .await
 }
 
+pub async fn zrevrange_by_score(max: u64, min: u64) -> Result<Vec<String>, RedisError> {
+    let mut conn = POOL.get().await.unwrap();
+
+    let value: Vec<String> = cmd("ZREVRANGEBYSCORE")
+        .arg(&[TX_SORTED_SET.to_string(), max.to_string(), min.to_string()])
+        .query_async::<_, Vec<String>>(&mut conn)
+        .await
+        .unwrap();
+
+    Ok(value)
+}
+
 pub async fn test(_key: &str) -> Result<(), RedisError> {
     let mut conn = POOL.get().await.unwrap();
 
