@@ -28,28 +28,7 @@ pub async fn zrevrange_by_score(max: u64, min: u64) -> Result<Vec<String>, Redis
     let value: Vec<String> = cmd("ZREVRANGEBYSCORE")
         .arg(&[TX_SORTED_SET.to_string(), max.to_string(), min.to_string()])
         .query_async::<_, Vec<String>>(&mut conn)
-        .await
-        .unwrap();
+        .await?;
 
     Ok(value)
-}
-
-pub async fn test(_key: &str) -> Result<(), RedisError> {
-    let mut conn = POOL.get().await.unwrap();
-
-    cmd("SET")
-        .arg(&["deadpool/test_key", "42"])
-        .query_async::<_, ()>(&mut conn)
-        .await
-        .unwrap();
-
-    let value: String = cmd("GET")
-        .arg(&["deadpool/test_key"])
-        .query_async(&mut conn)
-        .await
-        .unwrap();
-
-    println!("Value: {}", value);
-
-    Ok(())
 }
