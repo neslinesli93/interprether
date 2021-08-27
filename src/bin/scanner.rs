@@ -1,3 +1,4 @@
+use eth_oracle_rs::{block, redis};
 use std::time::Duration;
 
 const GETH_URL: &str = "ws://localhost:8546";
@@ -21,17 +22,26 @@ async fn main() -> web3::Result<()> {
 
             let block = web3.eth().block_with_txs(block_number.into()).await?.unwrap();
 
+            let mut transactions: Vec<block::Transaction> = vec![];
             for tx in block.transactions.iter() {
                 let input = tx.input.clone();
 
                 match std::str::from_utf8(&input.0) {
                     Ok("") => (),
-                    Ok(message) => println!("Tx {:?} has text: {}", tx.hash, message),
+                    Ok(message) => transactions.push(block::Transaction::new(tx.hash, message)),
                     _ => (),
                 }
             }
 
             latest_known_block_number = block_number;
+
+            // Save info to redis
+            if transactions.len() > 0 {
+                println!("Saving {} txs with timestamp {}", transactions.len(), block.timestamp);
+
+                let serialized_tx = serde_json::to_string(&transactions).unwrap();
+                redis::zadd(block.timestamp.as_u64(), serialized_tx).await.unwrap();
+            }
         }
 
         tokio::time::sleep(Duration::from_secs(1)).await;

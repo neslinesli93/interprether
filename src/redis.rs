@@ -4,6 +4,7 @@ use once_cell::sync::Lazy;
 use std::sync::Arc;
 
 const REDIS_URL: &str = "redis://0.0.0.0:6901";
+const TX_SORTED_SET: &str = "tx_set";
 
 static POOL: Lazy<Arc<Pool>> = Lazy::new(|| {
     let cfg = Config::from_url(REDIS_URL);
@@ -11,6 +12,15 @@ static POOL: Lazy<Arc<Pool>> = Lazy::new(|| {
 
     Arc::new(pool)
 });
+
+pub async fn zadd(score: u64, value: String) -> Result<(), RedisError> {
+    let mut conn = POOL.get().await.unwrap();
+
+    cmd("ZADD")
+        .arg(&[TX_SORTED_SET.to_string(), score.to_string(), value])
+        .query_async::<_, ()>(&mut conn)
+        .await
+}
 
 pub async fn test(_key: &str) -> Result<(), RedisError> {
     let mut conn = POOL.get().await.unwrap();

@@ -208,6 +208,8 @@ version = "0.1.0"
 dependencies = [
  "deadpool-redis",
  "once_cell",
+ "serde",
+ "serde_json",
  "tokio",
  "web3",
 ]

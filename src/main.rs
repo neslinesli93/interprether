@@ -1,8 +1,8 @@
-mod redis;
+use eth_oracle_rs::redis;
 
 #[tokio::main]
 async fn main() {
-    crate::redis::test("ciao").await.unwrap();
+    redis::test("ciao").await.unwrap();
 
     println!("Exiting");
 }
