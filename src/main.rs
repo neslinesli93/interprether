@@ -5,22 +5,37 @@ use warp::Filter;
 
 const SECONDS_IN_DAY: u64 = 86400;
 
-async fn get_transactions() -> Result<impl warp::Reply, warp::Rejection> {
+#[derive(Debug)]
+struct ServerError;
+
+impl warp::reject::Reject for ServerError {}
+
+async fn get_data() -> anyhow::Result<Vec<Transaction>> {
     let start = SystemTime::now();
     let since_the_epoch = start.duration_since(UNIX_EPOCH).expect("Time went backwards");
 
     let max = since_the_epoch.as_secs();
     let min = max - SECONDS_IN_DAY;
 
-    let result = redis::zrevrange_by_score(max, min).await.unwrap();
+    let result = redis::zrevrange_by_score(max, min).await?;
 
     let mut transactions: Vec<Transaction> = vec![];
     for item in result.iter() {
-        let parsed: Vec<Transaction> = serde_json::from_str(item).unwrap();
+        let parsed: Vec<Transaction> = serde_json::from_str(item)?;
         transactions.extend(parsed);
     }
 
-    Ok(warp::reply::json(&transactions))
+    Ok(transactions)
+}
+
+async fn get_transactions() -> anyhow::Result<impl warp::Reply, warp::Rejection> {
+    match get_data().await {
+        Ok(transactions) => Ok(warp::reply::json(&transactions)),
+        Err(error) => {
+            log::error!("Error while fetching txs: {:?}", error);
+            Err(warp::reject::custom(ServerError))
+        }
+    }
 }
 
 #[tokio::main]

@@ -1,4 +1,5 @@
-use deadpool_redis::redis::{cmd, RedisError};
+use anyhow::Result;
+use deadpool_redis::redis::cmd;
 use deadpool_redis::{Config, Pool};
 use once_cell::sync::Lazy;
 use std::sync::Arc;
@@ -13,17 +14,19 @@ static POOL: Lazy<Arc<Pool>> = Lazy::new(|| {
     Arc::new(pool)
 });
 
-pub async fn zadd(score: u64, value: String) -> Result<(), RedisError> {
-    let mut conn = POOL.get().await.unwrap();
+pub async fn zadd(score: u64, value: String) -> Result<()> {
+    let mut conn = POOL.get().await?;
 
-    cmd("ZADD")
+    let _ = cmd("ZADD")
         .arg(&[TX_SORTED_SET.to_string(), score.to_string(), value])
         .query_async::<_, ()>(&mut conn)
-        .await
+        .await?;
+
+    Ok(())
 }
 
-pub async fn zrevrange_by_score(max: u64, min: u64) -> Result<Vec<String>, RedisError> {
-    let mut conn = POOL.get().await.unwrap();
+pub async fn zrevrange_by_score(max: u64, min: u64) -> Result<Vec<String>> {
+    let mut conn = POOL.get().await?;
 
     let value: Vec<String> = cmd("ZREVRANGEBYSCORE")
         .arg(&[TX_SORTED_SET.to_string(), max.to_string(), min.to_string()])

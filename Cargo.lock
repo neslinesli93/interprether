@@ -249,8 +249,10 @@ dependencies = [
 name = "eth_oracle_rs"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "deadpool-redis",
  "env_logger",
+ "log",
  "once_cell",
  "serde",
  "serde_json",

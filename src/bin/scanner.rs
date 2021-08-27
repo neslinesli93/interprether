@@ -1,10 +1,14 @@
+use anyhow::Result;
 use eth_oracle_rs::{block, redis};
 use std::time::Duration;
 
 const GETH_URL: &str = "ws://localhost:8546";
 
 #[tokio::main]
-async fn main() -> web3::Result<()> {
+async fn main() -> Result<()> {
+    std::env::set_var("RUST_LOG", "info");
+    env_logger::init();
+
     let transport = web3::transports::WebSocket::new(GETH_URL).await?;
     let web3 = web3::Web3::new(transport);
 
@@ -37,10 +41,10 @@ async fn main() -> web3::Result<()> {
 
             // Save info to redis
             if transactions.len() > 0 {
-                println!("Saving {} txs with timestamp {}", transactions.len(), block.timestamp);
+                log::info!("Saving {} txs with timestamp {}", transactions.len(), block.timestamp);
 
-                let serialized_tx = serde_json::to_string(&transactions).unwrap();
-                redis::zadd(block.timestamp.as_u64(), serialized_tx).await.unwrap();
+                let serialized_tx = serde_json::to_string(&transactions)?;
+                redis::zadd(block.timestamp.as_u64(), serialized_tx).await?;
             }
         }
 
