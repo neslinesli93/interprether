@@ -10,3 +10,13 @@
   text-overflow: ellipsis;
   overflow: hidden;
 }
+
+.input {
+  margin-bottom: 2rem;
+}
+
+/* Bulma hotfix */
+.card-header-icon {
+  margin: 0.75rem 1rem;
+  padding: 0;
+}
