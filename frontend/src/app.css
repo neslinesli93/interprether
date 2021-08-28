@@ -1,0 +1,12 @@
+.card {
+  margin-bottom: 2rem;
+}
+
+.card-header-title {
+  overflow: hidden;
+}
+
+.tx-hash {
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
