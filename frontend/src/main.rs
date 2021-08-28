@@ -9,8 +9,12 @@ const BACKEND_URL: &str = "http://localhost:3030";
 
 #[derive(Deserialize, Debug)]
 pub struct Transaction {
+    #[serde(rename = "h")]
     pub hash: String,
+    #[serde(rename = "m")]
     pub message: String,
+    #[serde(rename = "t")]
+    pub timestamp: u64,
 }
 
 impl Transaction {
@@ -57,11 +61,12 @@ struct Model {
     filter: Option<String>,
     link: ComponentLink<Self>,
     fetch_task: Option<FetchTask>,
-    timeout_task: Option<TimeoutTask>,
+    debounce_task: Option<TimeoutTask>,
+    poll_task: Option<TimeoutTask>,
 }
 
 impl Model {
-    fn fetch_transactions(&mut self) -> FetchTask {
+    fn fetch_transactions(&mut self, after: Option<u64>) -> FetchTask {
         let callback = self
             .link
             .callback(move |response: Response<Json<anyhow::Result<Vec<Transaction>>>>| {
@@ -73,9 +78,13 @@ impl Model {
                     (_, Err(error)) => Msg::HttpError(format!("{:?}", error)),
                 }
             });
-        let request = Request::get(format!("{}{}", BACKEND_URL, "/transactions"))
-            .body(Nothing)
-            .expect("Failed to build request");
+
+        let uri = match after {
+            None => format!("{}{}", BACKEND_URL, "/transactions"),
+            Some(a) => format!("{}{}?after={}", BACKEND_URL, "/transactions", a),
+        };
+
+        let request = Request::get(uri).body(Nothing).expect("Failed to build request");
 
         FetchService::fetch(request, callback).expect("Failed to start request")
     }
@@ -85,6 +94,13 @@ impl Model {
             html! { <div>{ "Loading..." }</div> }
         } else {
             VNode::from(VList::new())
+        }
+    }
+
+    fn view_error(&self) -> Html {
+        match &self.error {
+            Some(e) => html! { <div>{ format!("Error: {:?}", e) }</div> },
+            None => VNode::from(VList::new()),
         }
     }
 }
@@ -104,22 +120,28 @@ impl Component for Model {
             filter: None,
             link,
             fetch_task: None,
-            timeout_task: None,
+            debounce_task: None,
+            poll_task: None,
         }
     }
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
             Msg::FetchTransactions => {
-                let fetch_task = self.fetch_transactions();
+                let after = self.transactions.first().map(|tx| tx.timestamp);
+                let fetch_task = self.fetch_transactions(after);
                 self.fetch_task = Some(fetch_task);
                 self.loading = true;
 
                 true
             }
             Msg::TransactionsFetched(data) => {
-                self.transactions = data;
+                self.transactions.splice(..0, data);
                 self.loading = false;
+
+                let cb = self.link.callback(move |_| Msg::FetchTransactions);
+                let poll_task = TimeoutService::spawn(std::time::Duration::from_secs(5), cb);
+                self.poll_task = Some(poll_task);
 
                 true
             }
@@ -130,11 +152,11 @@ impl Component for Model {
                 true
             }
             Msg::DebounceFilter(filter) => {
-                self.timeout_task = None;
+                self.debounce_task = None;
 
                 let cb = self.link.callback(move |_| Msg::EditFilter(filter.to_owned()));
-                let timeout_task = TimeoutService::spawn(std::time::Duration::from_millis(300), cb);
-                self.timeout_task = Some(timeout_task);
+                let debounce_task = TimeoutService::spawn(std::time::Duration::from_millis(300), cb);
+                self.debounce_task = Some(debounce_task);
 
                 false
             }
@@ -167,7 +189,9 @@ impl Component for Model {
         html! {
             <div class="container">
                 <section class="section">
+                    // TODO: Make these two better...
                     {self.view_loading()}
+                    {self.view_error()}
 
                     <input class="input" type="search" placeholder="Search transactions" oninput=oninput />
 
