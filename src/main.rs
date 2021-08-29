@@ -1,5 +1,6 @@
 use eth_oracle_rs::block::Transaction;
 use eth_oracle_rs::redis;
+use serde::Deserialize;
 use std::time::{SystemTime, UNIX_EPOCH};
 use warp::Filter;
 
@@ -10,12 +11,20 @@ struct ServerError;
 
 impl warp::reject::Reject for ServerError {}
 
-async fn get_data() -> anyhow::Result<Vec<Transaction>> {
+// Query params for /transactions
+#[derive(Debug, Deserialize)]
+pub struct TransactionsQueryParams {
+    pub after: Option<u64>,
+    pub limit: Option<usize>,
+}
+
+async fn get_data(params: TransactionsQueryParams) -> anyhow::Result<Vec<Transaction>> {
     let start = SystemTime::now();
     let since_the_epoch = start.duration_since(UNIX_EPOCH).expect("Time went backwards");
-
     let max = since_the_epoch.as_secs();
-    let min = max - SECONDS_IN_DAY;
+
+    let mut min = max - SECONDS_IN_DAY;
+    params.after.map(|a| min = a + 1);
 
     let result = redis::zrevrange_by_score(max, min).await?;
 
@@ -25,11 +34,14 @@ async fn get_data() -> anyhow::Result<Vec<Transaction>> {
         transactions.extend(parsed);
     }
 
-    Ok(transactions)
+    match params.limit {
+        Some(l) => Ok(transactions[0..l].to_vec()),
+        None => Ok(transactions),
+    }
 }
 
-async fn get_transactions() -> anyhow::Result<impl warp::Reply, warp::Rejection> {
-    match get_data().await {
+async fn get_transactions(params: TransactionsQueryParams) -> anyhow::Result<impl warp::Reply, warp::Rejection> {
+    match get_data(params).await {
         Ok(transactions) => Ok(warp::reply::json(&transactions)),
         Err(error) => {
             log::error!("Error while fetching txs: {:?}", error);
@@ -50,6 +62,7 @@ async fn main() {
     let transactions = warp::get()
         .and(warp::path("transactions"))
         .and(warp::path::end())
+        .and(warp::query::<TransactionsQueryParams>())
         .and_then(get_transactions)
         .with(log)
         .with(cors);
