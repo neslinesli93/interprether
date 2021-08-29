@@ -73,6 +73,7 @@ enum Msg {
 }
 
 struct Model {
+    first_fetch_done: bool,
     transactions: Vec<Transaction>,
     loading: bool,
     error: Option<String>,
@@ -108,8 +109,12 @@ impl Model {
     }
 
     fn view_loading(&self) -> Html {
-        if self.loading {
-            html! { <div>{ "Loading..." }</div> }
+        if self.loading && !self.first_fetch_done {
+            html! {
+               <div class="loader-wrapper is-active">
+                   <div class="loader is-loading"></div>
+               </div>
+            }
         } else {
             VNode::from(VList::new())
         }
@@ -125,6 +130,7 @@ impl Component for Model {
         initial_fetch.emit(());
 
         Self {
+            first_fetch_done: false,
             transactions: vec![],
             loading: false,
             error: None,
@@ -147,6 +153,8 @@ impl Component for Model {
                 true
             }
             Msg::TransactionsFetched(data) => {
+                self.first_fetch_done = true;
+
                 self.transactions.splice(..0, data);
                 self.loading = false;
 
@@ -206,7 +214,6 @@ impl Component for Model {
         html! {
             <div class="container">
                 <section class="section">
-                    // TODO: Make loader better (graphically) and show it only on first load
                     {self.view_loading()}
 
                     <input class="input" type="search" placeholder="Search transactions" oninput=oninput />

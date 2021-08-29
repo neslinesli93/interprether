@@ -19,6 +19,33 @@
   margin-bottom: 2rem;
 }
 
+/* Loader */
+.loader-wrapper {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  width: 100%;
+  background: #fff;
+  opacity: 0;
+  z-index: -1;
+  transition: opacity 0.3s;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 6px;
+}
+
+.loader-wrapper.is-active {
+  opacity: 1;
+  z-index: 1;
+}
+
+.loader {
+  height: 80px;
+  width: 80px;
+}
+
 /* Bulma hotfix */
 .card-header-icon {
   margin: 0.75rem 1rem;
