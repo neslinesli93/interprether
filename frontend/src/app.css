@@ -11,6 +11,10 @@
   overflow: hidden;
 }
 
+.tx-timestamp {
+  margin-top: 1px;
+}
+
 .input {
   margin-bottom: 2rem;
 }

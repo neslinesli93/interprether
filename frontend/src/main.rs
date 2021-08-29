@@ -1,11 +1,17 @@
+use chrono::{DateTime, NaiveDateTime, Utc};
 use serde::Deserialize;
 use yew::format::{Json, Nothing};
 use yew::prelude::*;
+use yew::services::console::ConsoleService;
 use yew::services::fetch::{FetchService, FetchTask, Request, Response};
 use yew::services::timeout::{TimeoutService, TimeoutTask};
 use yew::virtual_dom::{VList, VNode};
 
 const BACKEND_URL: &str = "http://localhost:3030";
+
+fn space() -> Html {
+    html! { <span> { "\u{00a0}" }</span> }
+}
 
 #[derive(Deserialize, Debug)]
 pub struct Transaction {
@@ -18,15 +24,27 @@ pub struct Transaction {
 }
 
 impl Transaction {
-    fn render(&self) -> Html {
+    fn render(&self, current_timestamp: u64) -> Html {
         let link = format!("https://etherscan.io/tx/{}", self.hash);
+
+        // Create human-readable time
+        let duration = chrono::Duration::seconds((self.timestamp - current_timestamp) as i64);
+        let human_time = chrono_humanize::HumanTime::from(duration);
+
+        // Create ISO time representation
+        let naive = NaiveDateTime::from_timestamp(self.timestamp as i64, 0);
+        let datetime: DateTime<Utc> = DateTime::from_utc(naive, Utc);
+        let iso_time = datetime.to_rfc2822();
 
         html! {
             <div class="card" key=self.hash.clone()>
                 <header class="card-header">
                     <p class="card-header-title">
-                        <span>{ "Tx\u{00a0}" }</span>
+                        <span>{ "Tx" }</span>
+                        { space() }
                         <span class="has-text-weight-normal tx-hash">{ &self.hash }</span>
+                        { space() }
+                        <span class="has-text-weight-normal is-size-7 tx-timestamp" title=iso_time>{ format!("({})", human_time) }</span>
                     </p>
                     <button class="card-header-icon" aria-label="more options">
                         <a href=link target="_blank" class="icon">
@@ -96,13 +114,6 @@ impl Model {
             VNode::from(VList::new())
         }
     }
-
-    fn view_error(&self) -> Html {
-        match &self.error {
-            Some(e) => html! { <div>{ format!("Error: {:?}", e) }</div> },
-            None => VNode::from(VList::new()),
-        }
-    }
 }
 
 impl Component for Model {
@@ -146,8 +157,10 @@ impl Component for Model {
                 true
             }
             Msg::HttpError(error) => {
-                self.error = Some(error);
+                self.error = Some(error.clone());
                 self.loading = false;
+
+                ConsoleService::log(format!("Error while fetching data: {}", error).as_str());
 
                 true
             }
@@ -186,16 +199,19 @@ impl Component for Model {
                 .unwrap_or(true)
         };
 
+        let current_date: js_sys::Date = js_sys::Date::new_0();
+        let current_timestamp: f64 = current_date.get_time() / (1000 as f64);
+        let current_timestamp_trunc: u64 = current_timestamp as u64;
+
         html! {
             <div class="container">
                 <section class="section">
-                    // TODO: Make these two better...
+                    // TODO: Make loader better (graphically) and show it only on first load
                     {self.view_loading()}
-                    {self.view_error()}
 
                     <input class="input" type="search" placeholder="Search transactions" oninput=oninput />
 
-                    {for self.transactions.iter().filter(filter).map(|tx| tx.render())}
+                    {for self.transactions.iter().filter(filter).map(|tx| tx.render(current_timestamp_trunc))}
                 </section>
             </div>
         }
