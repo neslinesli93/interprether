@@ -45,11 +45,14 @@ async fn main() {
 
     let log = warp::log("eth_oracle_rs");
 
+    let cors = warp::cors().allow_origin("http://localhost:8080");
+
     let transactions = warp::get()
         .and(warp::path("transactions"))
         .and(warp::path::end())
         .and_then(get_transactions)
-        .with(log);
+        .with(log)
+        .with(cors);
 
     warp::serve(transactions).run(([127, 0, 0, 1], 3030)).await;
 }
