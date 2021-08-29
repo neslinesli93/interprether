@@ -30,11 +30,17 @@ async fn main() -> Result<()> {
             for tx in block.transactions.iter() {
                 let input = tx.input.clone();
 
-                match std::str::from_utf8(&input.0) {
-                    Ok("") => (),
-                    Ok(message) => transactions.push(block::Transaction::new(tx.hash, message)),
-                    _ => (),
-                }
+                let _ = std::str::from_utf8(&input.0).map(|message| {
+                    // Remove NULL bytes
+                    let cleaned_message = message.replace(char::from(0), "");
+                    if !cleaned_message.is_empty() {
+                        transactions.push(block::Transaction::new(
+                            tx.hash,
+                            cleaned_message,
+                            block.timestamp.as_u64(),
+                        ));
+                    }
+                });
             }
 
             latest_known_block_number = block_number;
