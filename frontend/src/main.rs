@@ -1,5 +1,6 @@
 use chrono::{DateTime, NaiveDateTime, Utc};
 use serde::Deserialize;
+use yew::classes;
 use yew::format::{Json, Nothing};
 use yew::prelude::*;
 use yew::services::console::ConsoleService;
@@ -15,16 +16,24 @@ fn space() -> Html {
 
 #[derive(Deserialize, Debug)]
 pub struct Transaction {
+    // Backend fields
     #[serde(rename = "h")]
     pub hash: String,
     #[serde(rename = "m")]
     pub message: String,
     #[serde(rename = "t")]
     pub timestamp: u64,
+    // Local model
+    pub animate: Option<bool>,
 }
 
 impl Transaction {
     fn render(&self, current_timestamp: u64) -> Html {
+        let animate = match self.animate {
+            Some(true) => Some("animate"),
+            _ => None,
+        };
+
         let link = format!("https://etherscan.io/tx/{}", self.hash);
 
         // Create human-readable time
@@ -37,7 +46,7 @@ impl Transaction {
         let iso_time = datetime.to_rfc2822();
 
         html! {
-            <div class="card" key=self.hash.clone()>
+            <div class=classes!("card", animate) key=self.hash.clone()>
                 <header class="card-header">
                     <p class="card-header-title">
                         <span>{ "Tx" }</span>
@@ -153,14 +162,38 @@ impl Component for Model {
                 true
             }
             Msg::TransactionsFetched(data) => {
-                self.first_fetch_done = true;
+                // Immediately show transactions as soon as the page loads.
+                // For the subsequent loads, defer showing them to achieve an animation
+                let new_transactions: Vec<Transaction> = data
+                    .into_iter()
+                    .map(|tx| Transaction {
+                        animate: Some(self.first_fetch_done),
+                        ..tx
+                    })
+                    .collect();
 
-                self.transactions.splice(..0, data);
-                self.loading = false;
+                if !self.first_fetch_done {
+                    self.first_fetch_done = true;
+
+                    self.transactions = new_transactions;
+                } else {
+                    // Add new elements at the head, and remove same amount from tail
+                    for i in 0..self.transactions.len() - 1 {
+                        if self.transactions[i].animate == Some(true) {
+                            self.transactions[i].animate = Some(false);
+                        }
+                    }
+
+                    let new_elements = new_transactions.len();
+                    self.transactions.splice(..0, new_transactions);
+                    self.transactions.truncate(self.transactions.len() - new_elements);
+                }
 
                 let cb = self.link.callback(move |_| Msg::FetchTransactions);
-                let poll_task = TimeoutService::spawn(std::time::Duration::from_secs(5), cb);
+                let poll_task = TimeoutService::spawn(std::time::Duration::from_secs(15), cb);
                 self.poll_task = Some(poll_task);
+
+                self.loading = false;
 
                 true
             }

@@ -3,7 +3,7 @@ use eth_oracle_rs::{block, redis};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 const SECONDS_IN_DAY: u64 = 86400;
-const STEP: u64 = 100;
+const STEP: u64 = 50;
 
 #[tokio::main]
 async fn main() -> Result<()> {
