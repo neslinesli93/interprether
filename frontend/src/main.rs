@@ -128,6 +128,18 @@ impl Model {
             VNode::from(VList::new())
         }
     }
+
+    fn view_error(&self) -> Html {
+        if self.error.is_some() {
+            html! {
+               <div>
+                    <span>{ format!("{:?}", self.error) }</span>
+               </div>
+            }
+        } else {
+            VNode::from(VList::new())
+        }
+    }
 }
 
 impl Component for Model {
@@ -248,6 +260,8 @@ impl Component for Model {
             <div class="container">
                 <section class="section">
                     {self.view_loading()}
+
+                    {self.view_error()}
 
                     <input class="input" type="search" placeholder="Search transactions" oninput=oninput />
 
