@@ -1,5 +1,14 @@
 .card {
-  margin-bottom: 2rem;
+  margin: 24px;
+  height: 100px;
+}
+
+.card:first-child {
+  margin-top: 1px;
+}
+
+.card:last-child {
+  margin-bottom: 1px;
 }
 
 .card.animate {
@@ -41,6 +50,8 @@
 
 .input {
   margin-bottom: 2rem;
+  margin-left: 24px;
+  width: calc(100% - 24px);
 }
 
 /* Loader */
@@ -68,6 +79,12 @@
 .loader {
   height: 80px;
   width: 80px;
+}
+
+/* Virtual scroll */
+
+.root {
+  overflow-y: auto;
 }
 
 /* Bulma hotfix */

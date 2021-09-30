@@ -7,14 +7,17 @@ use yew::services::console::ConsoleService;
 use yew::services::fetch::{FetchService, FetchTask, Request, Response};
 use yew::services::timeout::{TimeoutService, TimeoutTask};
 use yew::virtual_dom::{VList, VNode};
+use yew::web_sys::Element;
 
 const BACKEND_URL: &str = "http://localhost:3030";
+
+const NODE_PADDING: i32 = 2;
 
 fn space() -> Html {
     html! { <span> { "\u{00a0}" }</span> }
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct Transaction {
     // Backend fields
     #[serde(rename = "h")]
@@ -74,27 +77,41 @@ impl Transaction {
 }
 
 enum Msg {
+    // Transactions
     FetchTransactions,
     TransactionsFetched(Vec<Transaction>),
     HttpError(String),
+    // Filter
     DebounceFilter(String),
     EditFilter(String),
+    // Virtual scroll
+    OnScroll,
 }
 
 struct Model {
+    // Model
     first_fetch_done: bool,
     transactions: Vec<Transaction>,
     loading: bool,
     error: Option<String>,
     filter: Option<String>,
+    // Cmd bus
     link: ComponentLink<Self>,
     fetch_task: Option<FetchTask>,
     debounce_task: Option<TimeoutTask>,
     poll_task: Option<TimeoutTask>,
+    // Refs
+    root_ref: NodeRef,
+    viewport_ref: NodeRef,
+    spacer_ref: NodeRef,
+    scroll_top: i32,
+    root_height: i32,
+    row_height: i32,
 }
 
 impl Model {
-    fn fetch_transactions(&mut self, after: Option<u64>) -> FetchTask {
+    // Transactions
+    fn fetch_transactions(&self, after: Option<u64>) -> FetchTask {
         let callback = self
             .link
             .callback(move |response: Response<Json<anyhow::Result<Vec<Transaction>>>>| {
@@ -117,6 +134,23 @@ impl Model {
         FetchService::fetch(request, callback).expect("Failed to start request")
     }
 
+    fn filtered_transactions(&self) -> Vec<Transaction> {
+        match &self.filter {
+            Some(f) => {
+                let filtered: Vec<Transaction> = self
+                    .transactions
+                    .iter()
+                    .filter(|tx| tx.message.to_lowercase().contains(&f.to_lowercase()))
+                    .cloned()
+                    .collect();
+
+                filtered
+            }
+            None => self.transactions.to_owned(),
+        }
+    }
+
+    // View
     fn view_loading(&self) -> Html {
         if self.loading && !self.first_fetch_done {
             html! {
@@ -140,6 +174,29 @@ impl Model {
             VNode::from(VList::new())
         }
     }
+
+    // Virtual scroll
+    fn items_count(&self) -> i32 {
+        self.filtered_transactions().len() as i32
+    }
+
+    fn viewport_height(&self) -> i32 {
+        self.items_count() * self.row_height
+    }
+
+    fn start_index(&self) -> i32 {
+        let start_node = (self.scroll_top / self.row_height) - NODE_PADDING;
+        std::cmp::max(start_node, 0)
+    }
+
+    fn visible_items_count(&self) -> i32 {
+        let count = (self.root_height / self.row_height) + 2 * NODE_PADDING;
+        std::cmp::min(self.items_count() - self.start_index(), count)
+    }
+
+    fn offset_y(&self) -> i32 {
+        self.start_index() * self.row_height
+    }
 }
 
 impl Component for Model {
@@ -160,6 +217,12 @@ impl Component for Model {
             fetch_task: None,
             debounce_task: None,
             poll_task: None,
+            root_ref: NodeRef::default(),
+            viewport_ref: NodeRef::default(),
+            spacer_ref: NodeRef::default(),
+            scroll_top: 0,
+            root_height: 600,
+            row_height: 100 + 24,
         }
     }
 
@@ -213,8 +276,6 @@ impl Component for Model {
                 self.error = Some(error.clone());
                 self.loading = false;
 
-                ConsoleService::log(format!("Error while fetching data: {}", error).as_str());
-
                 true
             }
             Msg::DebounceFilter(filter) => {
@@ -233,6 +294,13 @@ impl Component for Model {
                     self.filter = Some(filter.trim().into())
                 }
 
+                self.root_ref.cast::<Element>().unwrap().set_scroll_top(0);
+
+                true
+            }
+            Msg::OnScroll => {
+                self.scroll_top = self.root_ref.cast::<Element>().unwrap().scroll_top();
+
                 true
             }
         }
@@ -245,16 +313,21 @@ impl Component for Model {
     fn view(&self) -> Html {
         let oninput = self.link.callback(|event: InputData| Msg::DebounceFilter(event.value));
 
-        let filter = |tx: &&Transaction| {
-            self.filter
-                .as_ref()
-                .map(|f| tx.message.to_lowercase().contains(&f.to_lowercase()))
-                .unwrap_or(true)
-        };
+        let onscroll = self.link.callback(|_event: Event| Msg::OnScroll);
 
         let current_date: js_sys::Date = js_sys::Date::new_0();
         let current_timestamp: f64 = current_date.get_time() / (1000 as f64);
         let current_timestamp_trunc: u64 = current_timestamp as u64;
+
+        let root_style = format!("height: {}px; overflow-y: auto", self.root_height);
+        let viewport_style = format!(
+            "overflow: hidden; height: {}px; position: relative",
+            self.viewport_height()
+        );
+        let spacer_style = format!("transform: translateY({}px)", self.offset_y());
+
+        let min = self.start_index() as usize;
+        let max = (self.start_index() + self.visible_items_count() - 1) as usize;
 
         html! {
             <div class="container">
@@ -265,7 +338,13 @@ impl Component for Model {
 
                     <input class="input" type="search" placeholder="Search transactions" oninput=oninput />
 
-                    {for self.transactions.iter().filter(filter).map(|tx| tx.render(current_timestamp_trunc))}
+                    <div class="root" ref=self.root_ref.clone() onscroll=onscroll style=root_style>
+                        <div class="viewport" ref=self.viewport_ref.clone() style=viewport_style>
+                            <div class="spacer" ref=self.spacer_ref.clone() style=spacer_style>
+                                {for self.filtered_transactions().iter().enumerate().filter(|&(i, _)| i >= min && i <= max).map(|(_, tx)| tx.render(current_timestamp_trunc))}
+                            </div>
+                        </div>
+                    </div>
                 </section>
             </div>
         }
