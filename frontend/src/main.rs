@@ -3,11 +3,12 @@ use serde::Deserialize;
 use yew::classes;
 use yew::format::{Json, Nothing};
 use yew::prelude::*;
-use yew::services::console::ConsoleService;
 use yew::services::fetch::{FetchService, FetchTask, Request, Response};
 use yew::services::timeout::{TimeoutService, TimeoutTask};
 use yew::virtual_dom::{VList, VNode};
 use yew::web_sys::Element;
+
+pub mod string;
 
 const BACKEND_URL: &str = "http://localhost:3030";
 
@@ -31,7 +32,7 @@ pub struct Transaction {
 }
 
 impl Transaction {
-    fn render(&self, current_timestamp: u64) -> Html {
+    fn render(&self, current_timestamp: u64, filter: Option<&String>) -> Html {
         let animate = match self.animate {
             Some(true) => Some("animate"),
             _ => None,
@@ -67,11 +68,24 @@ impl Transaction {
                 <div>
                     <figure class="highlight">
                         <pre>
-                            <code>{ &self.message }</code>
+                            <code>{ self.render_message(filter) }</code>
                         </pre>
                     </figure>
                 </div>
             </div>
+        }
+    }
+
+    fn render_message(&self, filter: Option<&String>) -> Html {
+        match filter {
+            None => {
+                html! { <span>{ &self.message } </span> }
+            }
+            Some(f) => {
+                let parts = string::split_keep(&self.message, f);
+
+                html! { {for parts.iter().map(|p| p.render())} }
+            }
         }
     }
 }
@@ -341,7 +355,12 @@ impl Component for Model {
                     <div class="root" ref=self.root_ref.clone() onscroll=onscroll style=root_style>
                         <div class="viewport" ref=self.viewport_ref.clone() style=viewport_style>
                             <div class="spacer" ref=self.spacer_ref.clone() style=spacer_style>
-                                {for self.filtered_transactions().iter().enumerate().filter(|&(i, _)| i >= min && i <= max).map(|(_, tx)| tx.render(current_timestamp_trunc))}
+                                {for self
+                                    .filtered_transactions()
+                                    .iter()
+                                    .enumerate()
+                                    .filter(|&(i, _)| i >= min && i <= max).map(|(_, tx)| tx.render(current_timestamp_trunc, self.filter.as_ref()))
+                                }
                             </div>
                         </div>
                     </div>
