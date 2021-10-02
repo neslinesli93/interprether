@@ -14,8 +14,16 @@ const BACKEND_URL: &str = "http://localhost:3030";
 
 const NODE_PADDING: i32 = 2;
 
+const FETCH_INTERVAL: u64 = 1;
+
 fn space() -> Html {
     html! { <span> { "\u{00a0}" }</span> }
+}
+
+fn current_timestamp() -> u64 {
+    let current_date: js_sys::Date = js_sys::Date::new_0();
+    let current_timestamp: f64 = current_date.get_time() / (1000 as f64);
+    current_timestamp as u64
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -32,7 +40,7 @@ pub struct Transaction {
 }
 
 impl Transaction {
-    fn render(&self, current_timestamp: u64, filter: Option<&String>) -> Html {
+    fn render(&self, now: u64, filter: Option<&String>) -> Html {
         let animate = match self.animate {
             Some(true) => Some("animate"),
             _ => None,
@@ -41,7 +49,7 @@ impl Transaction {
         let link = format!("https://etherscan.io/tx/{}", self.hash);
 
         // Create human-readable time
-        let duration = chrono::Duration::seconds((self.timestamp - current_timestamp) as i64);
+        let duration = chrono::Duration::seconds((self.timestamp - now) as i64);
         let human_time = chrono_humanize::HumanTime::from(duration);
 
         // Create ISO time representation
@@ -98,6 +106,8 @@ enum Msg {
     // Filter
     DebounceFilter(String),
     EditFilter(String),
+    // Toggle
+    ToggleFeedPaused,
     // Virtual scroll
     OnScroll,
 }
@@ -109,6 +119,7 @@ struct Model {
     loading: bool,
     error: Option<String>,
     filter: Option<String>,
+    feed_paused: bool,
     // Cmd bus
     link: ComponentLink<Self>,
     fetch_task: Option<FetchTask>,
@@ -189,6 +200,19 @@ impl Model {
         }
     }
 
+    fn view_filter_description(&self) -> Html {
+        if self.filter.is_some() {
+            html! {
+                <>
+                    { space() }
+                    <span> { "(w/ filter)" } </span>
+                </>
+            }
+        } else {
+            VNode::from(VList::new())
+        }
+    }
+
     // Virtual scroll
     fn items_count(&self) -> i32 {
         self.filtered_transactions().len() as i32
@@ -218,15 +242,13 @@ impl Component for Model {
     type Properties = ();
 
     fn create(_props: Self::Properties, link: ComponentLink<Self>) -> Self {
-        let initial_fetch = link.callback(|_| Msg::FetchTransactions);
-        initial_fetch.emit(());
-
         Self {
             first_fetch_done: false,
             transactions: vec![],
             loading: false,
             error: None,
             filter: None,
+            feed_paused: false,
             link,
             fetch_task: None,
             debounce_task: None,
@@ -243,6 +265,10 @@ impl Component for Model {
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
             Msg::FetchTransactions => {
+                if self.feed_paused {
+                    return false;
+                }
+
                 let after = self.transactions.first().map(|tx| tx.timestamp);
                 let fetch_task = self.fetch_transactions(after);
                 self.fetch_task = Some(fetch_task);
@@ -251,6 +277,8 @@ impl Component for Model {
                 true
             }
             Msg::TransactionsFetched(data) => {
+                self.loading = false;
+
                 // Immediately show transactions as soon as the page loads.
                 // For the subsequent loads, defer showing them to achieve an animation
                 let new_transactions: Vec<Transaction> = data
@@ -278,11 +306,10 @@ impl Component for Model {
                     self.transactions.truncate(self.transactions.len() - new_elements);
                 }
 
-                let cb = self.link.callback(move |_| Msg::FetchTransactions);
-                let poll_task = TimeoutService::spawn(std::time::Duration::from_secs(15), cb);
+                // Poll for new data
+                let cb = self.link.callback(|_| Msg::FetchTransactions);
+                let poll_task = TimeoutService::spawn(std::time::Duration::from_secs(FETCH_INTERVAL), cb);
                 self.poll_task = Some(poll_task);
-
-                self.loading = false;
 
                 true
             }
@@ -312,6 +339,16 @@ impl Component for Model {
 
                 true
             }
+            Msg::ToggleFeedPaused => {
+                self.feed_paused = !self.feed_paused;
+
+                // Poll for new data
+                let cb = self.link.callback(|_| Msg::FetchTransactions);
+                let poll_task = TimeoutService::spawn(std::time::Duration::from_secs(FETCH_INTERVAL), cb);
+                self.poll_task = Some(poll_task);
+
+                true
+            }
             Msg::OnScroll => {
                 self.scroll_top = self.root_ref.cast::<Element>().unwrap().scroll_top();
 
@@ -325,13 +362,9 @@ impl Component for Model {
     }
 
     fn view(&self) -> Html {
+        let now = current_timestamp();
+
         let oninput = self.link.callback(|event: InputData| Msg::DebounceFilter(event.value));
-
-        let onscroll = self.link.callback(|_event: Event| Msg::OnScroll);
-
-        let current_date: js_sys::Date = js_sys::Date::new_0();
-        let current_timestamp: f64 = current_date.get_time() / (1000 as f64);
-        let current_timestamp_trunc: u64 = current_timestamp as u64;
 
         let root_style = format!("height: {}px; overflow-y: auto", self.root_height);
         let viewport_style = format!(
@@ -340,6 +373,7 @@ impl Component for Model {
         );
         let spacer_style = format!("transform: translateY({}px)", self.offset_y());
 
+        let transactions = self.filtered_transactions();
         let min = self.start_index() as usize;
         let max = (self.start_index() + self.visible_items_count() - 1) as usize;
 
@@ -352,20 +386,39 @@ impl Component for Model {
 
                     <input class="input" type="search" placeholder="Search transactions" oninput=oninput />
 
-                    <div class="root" ref=self.root_ref.clone() onscroll=onscroll style=root_style>
+                    <div class="settings">
+                        <span class="transactions-description">
+                            { format!{"{} transactions in the last 24 hours", transactions.len()} }
+                            { self.view_filter_description() }
+                        </span>
+                        <label class="checkbox">
+                            <input type="checkbox" onchange={self.link.callback(|_| Msg::ToggleFeedPaused)} checked={self.feed_paused} />
+                            { space() }
+                            { "Pause feed" }
+                        </label>
+                    </div>
+
+                    <div class="root" ref=self.root_ref.clone() style=root_style onscroll={self.link.callback(|_| Msg::OnScroll)}>
                         <div class="viewport" ref=self.viewport_ref.clone() style=viewport_style>
                             <div class="spacer" ref=self.spacer_ref.clone() style=spacer_style>
-                                {for self
-                                    .filtered_transactions()
+                                {for transactions
                                     .iter()
                                     .enumerate()
-                                    .filter(|&(i, _)| i >= min && i <= max).map(|(_, tx)| tx.render(current_timestamp_trunc, self.filter.as_ref()))
+                                    .filter(|&(i, _)| i >= min && i <= max)
+                                    .map(|(_, tx)| tx.render(now, self.filter.as_ref()))
                                 }
                             </div>
                         </div>
                     </div>
                 </section>
             </div>
+        }
+    }
+
+    fn rendered(&mut self, first_render: bool) {
+        if first_render {
+            let initial_fetch = self.link.callback(|_| Msg::FetchTransactions);
+            initial_fetch.emit(());
         }
     }
 }
