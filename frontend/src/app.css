@@ -54,6 +54,17 @@
   width: calc(100% - 24px);
 }
 
+.settings {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  margin-left: 24px;
+}
+
+.transactions-description {
+  flex: 1;
+}
+
 /* Loader */
 .loader-wrapper {
   position: absolute;
