@@ -14,7 +14,7 @@ const BACKEND_URL: &str = "http://localhost:3030";
 
 const NODE_PADDING: i32 = 2;
 
-const FETCH_INTERVAL: u64 = 1;
+const FETCH_INTERVAL: u64 = 5;
 
 fn space() -> Html {
     html! { <span> { "\u{00a0}" }</span> }
@@ -294,16 +294,16 @@ impl Component for Model {
 
                     self.transactions = new_transactions;
                 } else {
-                    // Add new elements at the head, and remove same amount from tail
                     for i in 0..self.transactions.len() - 1 {
                         if self.transactions[i].animate == Some(true) {
                             self.transactions[i].animate = Some(false);
                         }
                     }
 
-                    let new_elements = new_transactions.len();
+                    // Add new elements at the head, and remove expired elements from tail
+                    let now = current_timestamp();
                     self.transactions.splice(..0, new_transactions);
-                    self.transactions.truncate(self.transactions.len() - new_elements);
+                    self.transactions.retain(|tx| now - tx.timestamp < 86400);
                 }
 
                 // Poll for new data
