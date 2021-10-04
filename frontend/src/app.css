@@ -51,6 +51,7 @@
 pre {
   max-height: calc(100px - 38px);
   white-space: pre-wrap;
+  background-color: #efefef;
 }
 
 .input {
