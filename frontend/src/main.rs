@@ -11,10 +11,13 @@ use yew::web_sys::Element;
 pub mod string;
 
 const BACKEND_URL: &str = "http://localhost:3030";
-
-const NODE_PADDING: i32 = 2;
-
 const FETCH_INTERVAL: u64 = 5;
+
+const MOBILE_WIDTH: i32 = 768;
+const NODE_PADDING: i32 = 2;
+const ELEM_HEIGHT_DESKTOP: i32 = 100;
+const ELEM_HEIGHT_MOBILE: i32 = 120;
+const ELEM_MARGIN: i32 = 24;
 
 fn space() -> Html {
     html! { <span> { "\u{00a0}" }</span> }
@@ -261,7 +264,7 @@ impl Component for Model {
             spacer_ref: NodeRef::default(),
             scroll_top: 0,
             root_height: 600,
-            row_height: 100 + 24,
+            row_height: ELEM_HEIGHT_DESKTOP + ELEM_MARGIN,
         }
     }
 
@@ -434,6 +437,12 @@ impl Component for Model {
 
     fn rendered(&mut self, first_render: bool) {
         if first_render {
+            let window = yew::utils::window();
+            let width = window.inner_width().unwrap().as_f64().unwrap() as i32;
+            if width <= MOBILE_WIDTH {
+                self.row_height = ELEM_HEIGHT_MOBILE + ELEM_MARGIN;
+            }
+
             let initial_fetch = self.link.callback(|_| Msg::FetchTransactions);
             initial_fetch.emit(());
         }
