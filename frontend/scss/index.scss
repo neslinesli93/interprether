@@ -1,14 +1,20 @@
+@import "loader";
+
+html {
+  overflow-y: auto;
+}
+
 .card {
   margin: 24px;
   height: 100px;
-}
 
-.card:first-child {
-  margin-top: 1px;
-}
+  &:first-child {
+    margin-top: 1px;
+  }
 
-.card:last-child {
-  margin-bottom: 1px;
+  &:last-child {
+    margin-bottom: 1px;
+  }
 }
 
 .card.animate {
@@ -29,10 +35,6 @@
     max-height: 100%;
     opacity: 1;
   }
-}
-
-.card.show {
-  opacity: 1;
 }
 
 .card-header-title {
@@ -71,31 +73,18 @@ pre {
   flex: 1;
 }
 
-/* Loader */
-.loader-wrapper {
-  position: absolute;
-  top: 0;
-  left: 0;
-  height: 100vh;
-  width: 100%;
-  background: #fff;
-  opacity: 0;
-  z-index: -1;
-  transition: opacity 0.3s;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  border-radius: 6px;
-}
+@media screen and (max-width: 768px) {
+  .settings {
+    flex-direction: column-reverse;
+  }
 
-.loader-wrapper.is-active {
-  opacity: 1;
-  z-index: 1;
-}
+  .transactions-description {
+    margin-top: 12px;
+  }
 
-.loader {
-  height: 80px;
-  width: 80px;
+  .card {
+    height: 120px;
+  }
 }
 
 /* Virtual scroll */
