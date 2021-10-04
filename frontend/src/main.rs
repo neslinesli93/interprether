@@ -102,6 +102,7 @@ enum Msg {
     // Transactions
     FetchTransactions,
     TransactionsFetched(Vec<Transaction>),
+    RemoveAnimation(usize),
     HttpError(String),
     // Filter
     DebounceFilter(String),
@@ -125,6 +126,7 @@ struct Model {
     fetch_task: Option<FetchTask>,
     debounce_task: Option<TimeoutTask>,
     poll_task: Option<TimeoutTask>,
+    animation_task: Option<TimeoutTask>,
     // Refs
     root_ref: NodeRef,
     viewport_ref: NodeRef,
@@ -253,6 +255,7 @@ impl Component for Model {
             fetch_task: None,
             debounce_task: None,
             poll_task: None,
+            animation_task: None,
             root_ref: NodeRef::default(),
             viewport_ref: NodeRef::default(),
             spacer_ref: NodeRef::default(),
@@ -294,22 +297,36 @@ impl Component for Model {
 
                     self.transactions = new_transactions;
                 } else {
-                    for i in 0..self.transactions.len() - 1 {
-                        if self.transactions[i].animate == Some(true) {
-                            self.transactions[i].animate = Some(false);
-                        }
-                    }
-
                     // Add new elements at the head, and remove expired elements from tail
                     let now = current_timestamp();
+                    let new_transactions_len = new_transactions.len();
                     self.transactions.splice(..0, new_transactions);
                     self.transactions.retain(|tx| now - tx.timestamp < 86400);
+
+                    // Remove animation for new transactions.
+                    // This value needs to be kept in sync with the CSS
+                    let cb = self.link.callback(move |_| Msg::RemoveAnimation(new_transactions_len));
+                    let animation_task = TimeoutService::spawn(std::time::Duration::from_secs(1), cb);
+                    self.animation_task = Some(animation_task);
                 }
 
                 // Poll for new data
                 let cb = self.link.callback(|_| Msg::FetchTransactions);
                 let poll_task = TimeoutService::spawn(std::time::Duration::from_secs(FETCH_INTERVAL), cb);
                 self.poll_task = Some(poll_task);
+
+                true
+            }
+            Msg::RemoveAnimation(n) => {
+                if n == 0 {
+                    return false;
+                }
+
+                for i in 0..self.transactions.len() - 1 {
+                    if self.transactions[i].animate == Some(true) {
+                        self.transactions[i].animate = Some(false);
+                    }
+                }
 
                 true
             }
