@@ -1,0 +1,3 @@
+[[proxy]]
+rewrite = "/transactions"
+backend = "http://web:3030/"
