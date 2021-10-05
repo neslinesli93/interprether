@@ -7,13 +7,40 @@ services:
     ports:
       - "3030:3030"
     volumes:
-      - "/home/neslinesli93/.cargo:/home/app/.cargo"
+      - "~/.cargo:/home/app/.cargo"
+      - ".:/app"
+    environment:
+      CARGO_HOME: /home/app/.cargo
+    depends_on:
+      - frontend
+      - scanner
+      - geth
+      - redis
+    command: cargo make web
+
+  scanner:
+    build: .
+    restart: unless-stopped
+    volumes:
+      - "~/.cargo:/home/app/.cargo"
       - ".:/app"
     environment:
       CARGO_HOME: /home/app/.cargo
     depends_on:
       - geth
       - redis
+    command: cargo make scanner
+
+  frontend:
+    build:
+      context: ./frontend
+    volumes:
+      - "~/.cargo:/home/app/.cargo"
+      - "./frontend:/app"
+    ports:
+      - "8080:8080"
+    environment:
+      CARGO_HOME: /home/app/.cargo
 
   geth:
     image: ethereum/client-go:alltools-v1.10.7
@@ -28,6 +55,8 @@ services:
     depends_on:
       - redis
     command: geth --syncmode "light" --ws --ws.addr "0.0.0.0" --ws.api "eth,net,web3,txpool" --http --http.addr "0.0.0.0"
+    logging:
+      driver: none
 
   redis:
     image: docker.io/bitnami/redis:6.2
