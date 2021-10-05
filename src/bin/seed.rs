@@ -1,4 +1,5 @@
 use anyhow::Result;
+use dotenv::dotenv;
 use eth_oracle_rs::{block, redis};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -7,6 +8,8 @@ const STEP: u64 = 50;
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    dotenv().ok();
+
     std::env::set_var("RUST_LOG", "info");
     env_logger::init();
 

@@ -1,3 +1,4 @@
+use dotenv::dotenv;
 use eth_oracle_rs::block::Transaction;
 use eth_oracle_rs::redis;
 use serde::Deserialize;
@@ -20,7 +21,7 @@ pub struct TransactionsQueryParams {
 
 async fn get_data(params: TransactionsQueryParams) -> anyhow::Result<Vec<Transaction>> {
     let start = SystemTime::now();
-    let since_the_epoch = start.duration_since(UNIX_EPOCH).expect("Time went backwards");
+    let since_the_epoch = start.duration_since(UNIX_EPOCH).expect("Time awent backwards");
     let max = since_the_epoch.as_secs();
 
     let mut min = max - SECONDS_IN_DAY;
@@ -52,12 +53,15 @@ async fn get_transactions(params: TransactionsQueryParams) -> anyhow::Result<imp
 
 #[tokio::main]
 async fn main() {
+    dotenv().ok();
+
     std::env::set_var("RUST_LOG", "warp=info,eth_oracle_rs=info");
     env_logger::init();
 
     let log = warp::log("eth_oracle_rs");
 
-    let cors = warp::cors().allow_origin("http://localhost:8080");
+    let origin = std::env::var("ORIGIN").expect("ORIGIN must be set");
+    let cors = warp::cors().allow_origin(origin.as_str());
 
     let transactions = warp::get()
         .and(warp::path("transactions"))
@@ -67,5 +71,5 @@ async fn main() {
         .with(log)
         .with(cors);
 
-    warp::serve(transactions).run(([127, 0, 0, 1], 3030)).await;
+    warp::serve(transactions).run(([0, 0, 0, 0], 3030)).await;
 }
