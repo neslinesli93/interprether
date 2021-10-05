@@ -1,4 +1,5 @@
 use anyhow::Result;
+use dotenv::dotenv;
 use eth_oracle_rs::{block, redis};
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
@@ -14,6 +15,8 @@ fn rand_string(length: usize) -> String {
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    dotenv().ok();
+
     std::env::set_var("RUST_LOG", "info");
     env_logger::init();
 

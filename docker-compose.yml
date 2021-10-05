@@ -1,0 +1,46 @@
+version: "3"
+
+services:
+  web:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "3030:3030"
+    volumes:
+      - "/home/neslinesli93/.cargo:/home/app/.cargo"
+      - ".:/app"
+    environment:
+      CARGO_HOME: /home/app/.cargo
+    depends_on:
+      - geth
+      - redis
+
+  geth:
+    image: ethereum/client-go:alltools-v1.10.7
+    restart: unless-stopped
+    ports:
+      - "30303:30303"
+      - "30303:30303/udp"
+      - "8545:8545"
+      - "8546:8546"
+    volumes:
+      - "geth_data:/root"
+    depends_on:
+      - redis
+    command: geth --syncmode "light" --ws --ws.addr "0.0.0.0" --ws.api "eth,net,web3,txpool" --http --http.addr "0.0.0.0"
+
+  redis:
+    image: docker.io/bitnami/redis:6.2
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+      - REDIS_DISABLE_COMMANDS=FLUSHDB,FLUSHALL
+    ports:
+      - "6901:6379"
+    volumes:
+      - "redis_data:/bitnami/redis/data"
+
+volumes:
+  geth_data:
+    driver: local
+  redis_data:
+    driver: local

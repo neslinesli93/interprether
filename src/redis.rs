@@ -4,11 +4,11 @@ use deadpool_redis::{Config, Pool};
 use once_cell::sync::Lazy;
 use std::sync::Arc;
 
-const REDIS_URL: &str = "redis://0.0.0.0:6901";
 const TX_SORTED_SET: &str = "tx_set";
 
 static POOL: Lazy<Arc<Pool>> = Lazy::new(|| {
-    let cfg = Config::from_url(REDIS_URL);
+    let redis_url = std::env::var("REDIS_URL").expect("REDIS_URL must be set");
+    let cfg = Config::from_url(redis_url);
     let pool = cfg.create_pool().unwrap();
 
     Arc::new(pool)
