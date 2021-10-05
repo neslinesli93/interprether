@@ -1,0 +1,13 @@
+[tasks.build]
+command = "cargo"
+args = ["build", "--release"]
+ 
+[tasks.web]
+command = "cargo"
+args = ["run", "--release"]
+watch = { ignore_pattern = "frontend/*" }
+
+[tasks.scanner]
+command = "cargo"
+args = ["run", "--release", "--bin", "scanner"]
+watch = { ignore_pattern = "frontend/*" }

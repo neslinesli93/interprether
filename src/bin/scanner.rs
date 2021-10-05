@@ -1,15 +1,19 @@
 use anyhow::Result;
+use dotenv::dotenv;
 use eth_oracle_rs::{block, redis};
 use std::time::Duration;
 
-const GETH_URL: &str = "ws://localhost:8546";
-
 #[tokio::main]
 async fn main() -> Result<()> {
+    dotenv().ok();
+
     std::env::set_var("RUST_LOG", "info");
     env_logger::init();
 
-    let transport = web3::transports::WebSocket::new(GETH_URL).await?;
+    log::info!("Scanner started");
+
+    let geth_url = std::env::var("WEB3_PROVIDER_URL").expect("WEB3_PROVIDER_URL must be set");
+    let transport = web3::transports::WebSocket::new(&geth_url).await?;
     let web3 = web3::Web3::new(transport);
 
     let mut latest_known_block_number = web3::types::U64::from(0);
