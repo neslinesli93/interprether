@@ -1,0 +1,38 @@
+####################################################################################################
+## Builder
+####################################################################################################
+FROM rust:1.54 AS builder
+
+# Install WASM tools
+RUN cargo install --force trunk wasm-bindgen-cli
+RUN rustup target add wasm32-unknown-unknown
+
+# Create a new empty shell project
+RUN USER=root cargo new --bin app
+WORKDIR /app
+
+# Build dependencies
+COPY ./frontend/Cargo.lock ./Cargo.lock
+COPY ./frontend/Cargo.toml ./Cargo.toml
+
+RUN cargo build --release
+RUN rm src/*.rs
+
+# Build the app
+COPY ./frontend/src ./src
+COPY ./frontend/scss ./scss
+COPY ./frontend/index.html ./index.html
+
+RUN trunk build --release
+
+####################################################################################################
+## Final image
+####################################################################################################
+FROM nginx:1.21.3-alpine
+
+COPY ./docker/frontend/nginx.conf /etc/nginx/nginx.conf
+
+WORKDIR /app
+
+# Copy our build
+COPY --from=builder /app/dist ./dist

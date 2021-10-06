@@ -10,7 +10,7 @@ use yew::web_sys::Element;
 
 pub mod string;
 
-const BACKEND_URL: &str = "http://localhost:3030";
+const BACKEND_URL: &str = "";
 const FETCH_INTERVAL: u64 = 5;
 
 const MOBILE_WIDTH: i32 = 768;
