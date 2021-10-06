@@ -2,7 +2,9 @@ version: "3"
 
 services:
   web:
-    build: .
+    build:
+      context: ./docker/backend
+      dockerfile: Dockerfile.dev
     restart: unless-stopped
     ports:
       - "3030:3030"
@@ -19,7 +21,9 @@ services:
     command: cargo make web
 
   scanner:
-    build: .
+    build:
+      context: ./docker/backend
+      dockerfile: Dockerfile.dev
     restart: unless-stopped
     volumes:
       - "~/.cargo:/home/app/.cargo"
@@ -33,7 +37,8 @@ services:
 
   frontend:
     build:
-      context: ./frontend
+      context: ./docker/frontend
+      dockerfile: Dockerfile.dev
     volumes:
       - "~/.cargo:/home/app/.cargo"
       - "./frontend:/app"
