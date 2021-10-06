@@ -1,0 +1,42 @@
+version: "3"
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: ./docker/backend/Dockerfile.prod
+    restart: unless-stopped
+    ports:
+      - "3030:3030"
+    depends_on:
+      - redis
+    env_file: .env.production
+    command: eth_oracle_rs
+
+  scanner:
+    build:
+      context: .
+      dockerfile: ./docker/backend/Dockerfile.prod
+    restart: unless-stopped
+    depends_on:
+      - redis
+    env_file: .env.production
+    environment:
+      WEB3_PROVIDER_URL: ${WEB3_PROVIDER_URL}
+    command: scanner
+
+  redis:
+    image: docker.io/bitnami/redis:6.2
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+      - REDIS_DISABLE_COMMANDS=FLUSHDB,FLUSHALL
+    ports:
+      - "6901:6379"
+    volumes:
+      - "redis_data:/bitnami/redis/data"
+
+volumes:
+  geth_data:
+    driver: local
+  redis_data:
+    driver: local

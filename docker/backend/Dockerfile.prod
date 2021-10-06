@@ -1,0 +1,36 @@
+####################################################################################################
+## Builder
+####################################################################################################
+FROM rust:1.54 AS builder
+
+# Create a new empty shell project
+RUN USER=root cargo new --bin app
+WORKDIR /app
+
+# Build dependencies
+COPY ./Cargo.lock ./Cargo.lock
+COPY ./Cargo.toml ./Cargo.toml
+
+RUN cargo build --release
+RUN rm src/*.rs
+
+# Build the app
+COPY ./src ./src
+
+RUN cargo build --release
+
+####################################################################################################
+## Final image
+####################################################################################################
+FROM debian:buster-slim
+
+WORKDIR /app
+
+COPY ./docker/backend/entrypoint.prod ./entrypoint
+
+# Copy our build
+COPY --from=builder /app/target/release/cleaner ./
+COPY --from=builder /app/target/release/eth_oracle_rs ./
+COPY --from=builder /app/target/release/scanner ./
+
+ENTRYPOINT ["./entrypoint"]

@@ -13,7 +13,7 @@ async fn main() -> Result<()> {
     log::info!("Scanner started");
 
     let geth_url = std::env::var("WEB3_PROVIDER_URL").expect("WEB3_PROVIDER_URL must be set");
-    let transport = web3::transports::WebSocket::new(&geth_url).await?;
+    let transport = web3::transports::Http::new(&geth_url)?;
     let web3 = web3::Web3::new(transport);
 
     let mut latest_known_block_number = web3::types::U64::from(0);
