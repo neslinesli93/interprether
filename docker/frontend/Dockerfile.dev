@@ -10,4 +10,4 @@ USER app
 
 WORKDIR /app
 
-CMD ["trunk", "serve", "--release"]
+CMD ["trunk", "serve"]
