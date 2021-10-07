@@ -33,7 +33,7 @@ async fn main() -> Result<()> {
     }];
 
     let serialized_tx = serde_json::to_string(&transactions)?;
-    redis::zadd(now.as_secs().into(), serialized_tx).await?;
+    redis::zadd(now.as_secs(), serialized_tx).await?;
 
     log::info!("Inserted tx at {}", now.as_secs());
 

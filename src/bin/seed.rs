@@ -29,7 +29,7 @@ async fn main() -> Result<()> {
         }];
 
         let serialized_tx = serde_json::to_string(&transactions)?;
-        redis::zadd(start.into(), serialized_tx).await?;
+        redis::zadd(start, serialized_tx).await?;
 
         start -= STEP;
         counter += 1;
