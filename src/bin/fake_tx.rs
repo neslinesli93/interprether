@@ -1,6 +1,6 @@
 use anyhow::Result;
 use dotenv::dotenv;
-use eth_oracle_rs::{block, redis};
+use interprether::{block, redis};
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
 use std::time::{SystemTime, UNIX_EPOCH};

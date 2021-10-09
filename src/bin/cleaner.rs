@@ -1,6 +1,6 @@
 use anyhow::Result;
 use dotenv::dotenv;
-use eth_oracle_rs::redis;
+use interprether::redis;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 const SECONDS_IN_DAY: u64 = 86400;
