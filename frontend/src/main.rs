@@ -8,6 +8,7 @@ use yew::services::timeout::{TimeoutService, TimeoutTask};
 use yew::virtual_dom::{VList, VNode};
 use yew::web_sys::Element;
 
+pub mod hero;
 pub mod string;
 
 const SECONDS_IN_DAY: u64 = 86400;
@@ -400,8 +401,11 @@ impl Component for Model {
         let max = (self.start_index() + self.visible_items_count() - 1) as usize;
 
         html! {
-            <div class="container">
-                <section class="section">
+            <>
+            {hero::render()}
+
+            <section class="section">
+                <div class="container">
                     {self.view_loading()}
 
                     {self.view_error()}
@@ -432,8 +436,9 @@ impl Component for Model {
                             </div>
                         </div>
                     </div>
-                </section>
-            </div>
+                </div>
+            </section>
+            </>
         }
     }
 
