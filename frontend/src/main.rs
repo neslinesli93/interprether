@@ -1,15 +1,14 @@
-use chrono::{DateTime, NaiveDateTime, Utc};
-use serde::Deserialize;
-use yew::classes;
+use crate::model::{Model, Msg, Transaction};
 use yew::format::{Json, Nothing};
 use yew::prelude::*;
 use yew::services::fetch::{FetchService, FetchTask, Request, Response};
-use yew::services::timeout::{TimeoutService, TimeoutTask};
+use yew::services::timeout::TimeoutService;
 use yew::virtual_dom::{VList, VNode};
 use yew::web_sys::Element;
 
-pub mod hero;
+pub mod model;
 pub mod string;
+pub mod view;
 
 const SECONDS_IN_DAY: u64 = 86400;
 
@@ -22,124 +21,10 @@ const ELEM_HEIGHT_DESKTOP: i32 = 100;
 const ELEM_HEIGHT_MOBILE: i32 = 120;
 const ELEM_MARGIN: i32 = 24;
 
-fn space() -> Html {
-    html! { <span> { "\u{00a0}" }</span> }
-}
-
 fn current_timestamp() -> u64 {
     let current_date: js_sys::Date = js_sys::Date::new_0();
     let current_timestamp: f64 = current_date.get_time() / (1000_f64);
     current_timestamp as u64
-}
-
-#[derive(Deserialize, Debug, Clone)]
-pub struct Transaction {
-    // Backend fields
-    #[serde(rename = "h")]
-    pub hash: String,
-    #[serde(rename = "m")]
-    pub message: String,
-    #[serde(rename = "t")]
-    pub timestamp: u64,
-    // Local model
-    pub animate: Option<bool>,
-}
-
-impl Transaction {
-    fn render(&self, now: u64, filter: Option<&String>) -> Html {
-        let animate = match self.animate {
-            Some(true) => Some("animate"),
-            _ => None,
-        };
-
-        let link = format!("https://etherscan.io/tx/{}", self.hash);
-
-        // Create human-readable time
-        let duration = chrono::Duration::seconds(self.timestamp as i64 - now as i64);
-        let human_time = chrono_humanize::HumanTime::from(duration);
-
-        // Create ISO time representation
-        let naive = NaiveDateTime::from_timestamp(self.timestamp as i64, 0);
-        let datetime: DateTime<Utc> = DateTime::from_utc(naive, Utc);
-        let iso_time = datetime.to_rfc2822();
-
-        html! {
-            <div class=classes!("card", animate) key=self.hash.clone()>
-                <header class="card-header">
-                    <p class="card-header-title">
-                        <span>{ "Tx" }</span>
-                        { space() }
-                        <span class="has-text-weight-normal tx-hash">{ &self.hash }</span>
-                        { space() }
-                        <span class="has-text-weight-normal is-size-7 tx-timestamp" title=iso_time>{ format!("({})", human_time) }</span>
-                    </p>
-                    <button class="card-header-icon" aria-label="more options">
-                        <a href=link target="_blank" class="icon">
-                            <i class="fas fa-external-link" aria-hidden="true"></i>
-                        </a>
-                    </button>
-                </header>
-                <div>
-                    <figure class="highlight">
-                        <pre>
-                            <code>{ self.render_message(filter) }</code>
-                        </pre>
-                    </figure>
-                </div>
-            </div>
-        }
-    }
-
-    fn render_message(&self, filter: Option<&String>) -> Html {
-        match filter {
-            None => {
-                html! { <span>{ &self.message } </span> }
-            }
-            Some(f) => {
-                let parts = string::split_keep(&self.message, f);
-
-                html! { {for parts.iter().map(|p| p.render())} }
-            }
-        }
-    }
-}
-
-enum Msg {
-    // Transactions
-    FetchTransactions,
-    TransactionsFetched(Vec<Transaction>),
-    RemoveAnimation(usize),
-    HttpError(String),
-    // Filter
-    DebounceFilter(String),
-    EditFilter(String),
-    // Toggle
-    ToggleFeedPaused,
-    // Virtual scroll
-    OnScroll,
-}
-
-struct Model {
-    // Model
-    first_fetch_done: bool,
-    transactions: Vec<Transaction>,
-    loading: bool,
-    error: Option<String>,
-    filter: Option<String>,
-    feed_paused: bool,
-    // Cmd bus
-    link: ComponentLink<Self>,
-    fetch_task: Option<FetchTask>,
-    debounce_task: Option<TimeoutTask>,
-    poll_task: Option<TimeoutTask>,
-    animation_task: Option<TimeoutTask>,
-    // Refs
-    root_ref: NodeRef,
-    viewport_ref: NodeRef,
-    spacer_ref: NodeRef,
-    scroll_top: i32,
-    root_height: i32,
-    row_height: i32,
 }
 
 impl Model {
@@ -212,7 +97,7 @@ impl Model {
         if self.filter.is_some() {
             html! {
                 <>
-                    { space() }
+                    { view::common::space() }
                     <span> { "(w/ filter)" } </span>
                 </>
             }
@@ -402,7 +287,7 @@ impl Component for Model {
 
         html! {
             <>
-            {hero::render()}
+            {view::hero::render()}
 
             <section class="section">
                 <div class="container">
@@ -419,7 +304,7 @@ impl Component for Model {
                         </span>
                         <label class="checkbox">
                             <input type="checkbox" onchange={self.link.callback(|_| Msg::ToggleFeedPaused)} checked={self.feed_paused} />
-                            { space() }
+                            { view::common::space() }
                             { "Pause feed" }
                         </label>
                     </div>
