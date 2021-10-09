@@ -25,7 +25,9 @@ async fn get_data(params: TransactionsQueryParams) -> anyhow::Result<Vec<Transac
     let max = since_the_epoch.as_secs();
 
     let mut min = max - SECONDS_IN_DAY;
-    params.after.map(|a| min = a + 1);
+    if let Some(a) = params.after {
+        min = a + 1;
+    }
 
     let result = redis::zrevrange_by_score(max, min).await?;
 

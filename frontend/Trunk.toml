@@ -1,3 +1,2 @@
 [[proxy]]
-rewrite = "/transactions"
-backend = "http://web:3030/"
+backend = "http://web:3030/transactions"
