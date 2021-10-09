@@ -1,8 +1,8 @@
 [package]
-name = "eth_oracle_rs"
+name = "interprether"
 version = "0.1.0"
 edition = "2018"
-default-run = "eth_oracle_rs"
+default-run = "interprether"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

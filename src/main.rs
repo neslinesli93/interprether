@@ -1,6 +1,6 @@
 use dotenv::dotenv;
-use eth_oracle_rs::block::Transaction;
-use eth_oracle_rs::redis;
+use interprether::block::Transaction;
+use interprether::redis;
 use serde::Deserialize;
 use std::time::{SystemTime, UNIX_EPOCH};
 use warp::Filter;
@@ -57,10 +57,10 @@ async fn get_transactions(params: TransactionsQueryParams) -> anyhow::Result<imp
 async fn main() {
     dotenv().ok();
 
-    std::env::set_var("RUST_LOG", "warp=info,eth_oracle_rs=info");
+    std::env::set_var("RUST_LOG", "warp=info,interprether=info");
     env_logger::init();
 
-    let log = warp::log("eth_oracle_rs");
+    let log = warp::log("interprether");
 
     let origin = std::env::var("ORIGIN").expect("ORIGIN must be set");
     let cors = warp::cors().allow_origin(origin.as_str());

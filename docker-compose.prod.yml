@@ -20,7 +20,7 @@ services:
     depends_on:
       - redis
     env_file: .env.production
-    command: eth_oracle_rs
+    command: interprether
 
   scanner:
     build:

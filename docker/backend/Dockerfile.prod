@@ -30,7 +30,7 @@ COPY ./docker/backend/entrypoint.prod ./entrypoint
 
 # Copy our build
 COPY --from=builder /app/target/release/cleaner ./
-COPY --from=builder /app/target/release/eth_oracle_rs ./
+COPY --from=builder /app/target/release/interprether ./
 COPY --from=builder /app/target/release/scanner ./
 
 ENTRYPOINT ["./entrypoint"]

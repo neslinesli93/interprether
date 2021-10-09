@@ -273,24 +273,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "eth_oracle_rs"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "deadpool-redis",
- "dotenv",
- "env_logger",
- "log",
- "once_cell",
- "rand 0.8.4",
- "serde",
- "serde_json",
- "tokio",
- "warp",
- "web3",
-]
-
-[[package]]
 name = "ethabi"
 version = "14.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -718,6 +700,24 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bee0328b1209d157ef001c94dd85b4f8f64139adb0eac2659f4b08382b2f474d"
 dependencies = [
  "cfg-if",
+]
+
+[[package]]
+name = "interprether"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "deadpool-redis",
+ "dotenv",
+ "env_logger",
+ "log",
+ "once_cell",
+ "rand 0.8.4",
+ "serde",
+ "serde_json",
+ "tokio",
+ "warp",
+ "web3",
 ]
 
 [[package]]
