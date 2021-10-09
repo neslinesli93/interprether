@@ -10,6 +10,8 @@ use yew::web_sys::Element;
 
 pub mod string;
 
+const SECONDS_IN_DAY: u64 = 86400;
+
 const BACKEND_URL: &str = "";
 const FETCH_INTERVAL: u64 = 5;
 
@@ -52,7 +54,7 @@ impl Transaction {
         let link = format!("https://etherscan.io/tx/{}", self.hash);
 
         // Create human-readable time
-        let duration = chrono::Duration::seconds((self.timestamp - now) as i64);
+        let duration = chrono::Duration::seconds(self.timestamp as i64 - now as i64);
         let human_time = chrono_humanize::HumanTime::from(duration);
 
         // Create ISO time representation
@@ -304,7 +306,7 @@ impl Component for Model {
                     let now = current_timestamp();
                     let new_transactions_len = new_transactions.len();
                     self.transactions.splice(..0, new_transactions);
-                    self.transactions.retain(|tx| now - tx.timestamp < 86400);
+                    self.transactions.retain(|tx| now - tx.timestamp < SECONDS_IN_DAY);
 
                     // Remove animation for new transactions.
                     // This value needs to be kept in sync with the CSS
