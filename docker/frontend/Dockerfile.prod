@@ -27,6 +27,9 @@ COPY ./frontend/hooks ./hooks
 
 RUN trunk build --release
 
+# Compress files
+RUN gzip -rk dist/
+
 # Add more stuff to index.html, only in prod
 RUN sed -i -e "/<\/head>/r ./hooks/shynet.html" -e "//d" ./dist/index.html
 
