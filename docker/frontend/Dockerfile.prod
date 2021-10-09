@@ -22,6 +22,7 @@ RUN rm src/*.rs
 COPY ./frontend/src ./src
 COPY ./frontend/scss ./scss
 COPY ./frontend/index.html ./index.html
+COPY ./frontend/favicon.svg ./favicon.svg
 
 RUN trunk build --release
 
