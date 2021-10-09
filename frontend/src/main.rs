@@ -25,7 +25,7 @@ fn space() -> Html {
 
 fn current_timestamp() -> u64 {
     let current_date: js_sys::Date = js_sys::Date::new_0();
-    let current_timestamp: f64 = current_date.get_time() / (1000 as f64);
+    let current_timestamp: f64 = current_date.get_time() / (1000_f64);
     current_timestamp as u64
 }
 
@@ -334,7 +334,7 @@ impl Component for Model {
                 true
             }
             Msg::HttpError(error) => {
-                self.error = Some(error.clone());
+                self.error = Some(error);
                 self.loading = false;
 
                 true

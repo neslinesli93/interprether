@@ -25,7 +25,7 @@ async fn main() -> Result<()> {
             let block_number = if latest_known_block_number.is_zero() {
                 current_block_number
             } else {
-                (latest_known_block_number + 1).into()
+                latest_known_block_number + 1
             };
 
             let block = web3.eth().block_with_txs(block_number.into()).await?.unwrap();
@@ -50,7 +50,7 @@ async fn main() -> Result<()> {
             latest_known_block_number = block_number;
 
             // Save info to redis
-            if transactions.len() > 0 {
+            if !transactions.is_empty() {
                 log::info!("Saving {} txs with timestamp {}", transactions.len(), block.timestamp);
 
                 let serialized_tx = serde_json::to_string(&transactions)?;
