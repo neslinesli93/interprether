@@ -1,11 +1,6 @@
-# on: push
-
 name: CI backend
 
-on:
-  push:
-    branches:
-      - "non-existing"
+on: push
 
 jobs:
   ci:
