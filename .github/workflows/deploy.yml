@@ -3,7 +3,7 @@ name: Deploy
 on:
   push:
     branches:
-      - "add-ci"
+      - "master"
 
 jobs:
   docker:
@@ -28,10 +28,10 @@ jobs:
           file: docker/backend/Dockerfile.prod
           push: true
           tags: |
-            neslinesli93/oracle_backend:latest
-            neslinesli93/oracle_backend:${{ github.sha }}
-          cache-from: type=registry,ref=neslinesli93/oracle_backend:buildcache
-          cache-to: type=registry,ref=neslinesli93/oracle_backend:buildcache,mode=max
+            neslinesli93/interprether_backend:latest
+            neslinesli93/interprether_backend:${{ github.sha }}
+          cache-from: type=registry,ref=neslinesli93/interprether_backend:buildcache
+          cache-to: type=registry,ref=neslinesli93/interprether_backend:buildcache,mode=max
 
       - name: Build and push frontend
         uses: docker/build-push-action@v2
@@ -40,7 +40,7 @@ jobs:
           file: docker/frontend/Dockerfile.prod
           push: true
           tags: |
-            neslinesli93/oracle_frontend:latest
-            neslinesli93/oracle_frontend:${{ github.sha }}
-          cache-from: type=registry,ref=neslinesli93/oracle_frontend:buildcache
-          cache-to: type=registry,ref=neslinesli93/oracle_frontend:buildcache,mode=max
+            neslinesli93/interprether_frontend:latest
+            neslinesli93/interprether_frontend:${{ github.sha }}
+          cache-from: type=registry,ref=neslinesli93/interprether_frontend:buildcache
+          cache-to: type=registry,ref=neslinesli93/interprether_frontend:buildcache,mode=max
