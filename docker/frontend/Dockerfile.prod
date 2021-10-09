@@ -23,8 +23,15 @@ COPY ./frontend/src ./src
 COPY ./frontend/scss ./scss
 COPY ./frontend/index.html ./index.html
 COPY ./frontend/favicon.svg ./favicon.svg
+COPY ./frontend/hooks ./hooks
 
 RUN trunk build --release
+
+# Compress files
+RUN gzip -rk dist/
+
+# Add more stuff to index.html, only in prod
+RUN sed -i -e "/<\/head>/r ./hooks/shynet.html" -e "//d" ./dist/index.html
 
 ####################################################################################################
 ## Final image
@@ -37,3 +44,5 @@ WORKDIR /app
 
 # Copy our build
 COPY --from=builder /app/dist ./dist
+
+EXPOSE 8080

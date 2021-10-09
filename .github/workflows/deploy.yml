@@ -44,3 +44,23 @@ jobs:
             neslinesli93/interprether_frontend:${{ github.sha }}
           cache-from: type=registry,ref=neslinesli93/interprether_frontend:buildcache
           cache-to: type=registry,ref=neslinesli93/interprether_frontend:buildcache,mode=max
+
+      - name: Copy files to server
+        uses: Pendect/action-rsyncer@v1.1.0
+        env:
+          DEPLOY_KEY: ${{secrets.DEPLOY_KEY}}
+        with:
+          flags: "-avzr --delete"
+          src: "./docker-compose.prod.yml"
+          dest: "root@${{secrets.DEPLOY_HOST}}:/root/docker-compose.yml"
+
+      - name: Restart containers
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{secrets.DEPLOY_HOST}}
+          username: root
+          key: ${{secrets.DEPLOY_KEY}}
+          port: 22
+          script: |
+            docker-compose pull
+            WEB3_PROVIDER_URL=${{secrets.WEB3_PROVIDER_URL}} docker-compose up --detach

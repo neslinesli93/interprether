@@ -8,7 +8,7 @@ pub fn render() -> Html {
                     <div class="container">
                         <div class="navbar-end">
                             <span class="navbar-item">
-                                <a class="button">
+                                <a class="button" href="https://github.com/neslinesli93/interprether" target="_blank" rel="noopener noreferrer">
                                     <span class="icon">
                                         <i class="fab fa-github"></i>
                                     </span>

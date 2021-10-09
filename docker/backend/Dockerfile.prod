@@ -33,4 +33,9 @@ COPY --from=builder /app/target/release/cleaner ./
 COPY --from=builder /app/target/release/interprether ./
 COPY --from=builder /app/target/release/scanner ./
 
+# Set environment variables (not secrets)
+COPY ./.env.production ./.env
+
+EXPOSE 3030
+
 ENTRYPOINT ["./entrypoint"]
