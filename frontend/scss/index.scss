@@ -39,6 +39,22 @@ html {
 
 .card-header-title {
   overflow: hidden;
+  flex-grow: 0;
+}
+
+.card-header-icon-filter {
+  opacity: 0;
+}
+
+.card:hover {
+  .card-header-icon-filter {
+    opacity: 1;
+  }
+}
+
+.card-header-filters {
+  display: flex;
+  flex: 1;
 }
 
 .tx-hash {
@@ -69,10 +85,6 @@ pre {
   margin-left: 24px;
 }
 
-.transactions-description {
-  flex: 1;
-}
-
 @media screen and (max-width: 768px) {
   .settings {
     flex-direction: column-reverse;
@@ -83,7 +95,11 @@ pre {
   }
 
   .card {
-    height: 120px;
+    height: 140px;
+  }
+
+  .card-header-icon-filter {
+    display: none;
   }
 }
 

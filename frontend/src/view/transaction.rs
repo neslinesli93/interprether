@@ -31,7 +31,15 @@ impl Transaction {
                         { crate::view::common::space() }
                         <span class="has-text-weight-normal is-size-7 tx-timestamp" title=iso_time>{ format!("({})", human_time) }</span>
                     </p>
-                    <button class="card-header-icon" aria-label="more options">
+                    <div class="card-header-filters">
+                        <button class="card-header-icon card-header-icon-filter" title="Filter for message">
+                            <i class="fas fa-search-plus" aria-hidden="true"></i>
+                        </button>
+                        <button class="card-header-icon card-header-icon-filter" title="Filter out message">
+                            <i class="fas fa-search-minus" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                    <button class="card-header-icon" title="View on Etherscan">
                         <a href=link target="_blank" class="icon">
                             <i class="fas fa-external-link" aria-hidden="true"></i>
                         </a>
