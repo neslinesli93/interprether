@@ -1,6 +1,6 @@
 use anyhow::Result;
 use dotenv::dotenv;
-use interprether::{block, redis};
+use interprether::{redis, transaction};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 const SECONDS_IN_DAY: u64 = 86400;
@@ -22,10 +22,12 @@ async fn main() -> Result<()> {
     let mut counter = 0;
     let mut start = max;
     while start > min {
-        let transactions = vec![block::Transaction {
+        let transactions = vec![transaction::Transaction {
             hash: format!("0x{}", start),
             message: format!("Message {}", start),
             timestamp: start,
+            from: Some(format!("sender-0x{}", start)),
+            to: Some(format!("sender-0x{}", start)),
         }];
 
         let serialized_tx = serde_json::to_string(&transactions)?;

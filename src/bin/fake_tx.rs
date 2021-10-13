@@ -1,6 +1,6 @@
 use anyhow::Result;
 use dotenv::dotenv;
-use interprether::{block, redis};
+use interprether::{redis, transaction};
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -26,10 +26,24 @@ async fn main() -> Result<()> {
         .duration_since(UNIX_EPOCH)
         .expect("Time went backwards");
 
-    let transactions = vec![block::Transaction {
+    let from = if rng.gen_bool(0.5) {
+        Some(format!("0x{}", rand_string(16)))
+    } else {
+        None
+    };
+
+    let to = if rng.gen_bool(0.5) {
+        Some(format!("0x{}", rand_string(16)))
+    } else {
+        None
+    };
+
+    let transactions = vec![transaction::Transaction {
         hash: format!("0x{}", rand_string(32)),
         message: rand_string(rng.gen_range(50..100)),
         timestamp: now.as_secs(),
+        from,
+        to,
     }];
 
     let serialized_tx = serde_json::to_string(&transactions)?;
