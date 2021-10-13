@@ -1,4 +1,5 @@
 use serde::Deserialize;
+use std::sync::Arc;
 use yew::prelude::*;
 use yew::services::fetch::FetchTask;
 use yew::services::timeout::TimeoutTask;
@@ -12,6 +13,9 @@ pub enum Msg {
     // Filter
     DebounceFilter(String),
     EditFilter(String),
+    // Advanced filters
+    AddMessageFilter(String),
+    RemoveMessageFilter(String),
     // Toggle
     ToggleFeedPaused,
     // Virtual scroll
@@ -24,8 +28,10 @@ pub struct Model {
     pub transactions: Vec<Transaction>,
     pub loading: bool,
     pub error: Option<String>,
-    pub filter: Option<String>,
+    pub filter: Arc<Option<String>>,
     pub feed_paused: bool,
+    // Advanced filters
+    pub content_filters: Vec<String>,
     // Cmd bus
     pub link: ComponentLink<Self>,
     pub fetch_task: Option<FetchTask>,
@@ -41,7 +47,7 @@ pub struct Model {
     pub row_height: i32,
 }
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Properties)]
 pub struct Transaction {
     // Backend fields
     #[serde(rename = "h")]

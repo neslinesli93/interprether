@@ -1,4 +1,6 @@
 use crate::model::{Model, Msg, Transaction};
+use crate::transaction_card::TransactionCard;
+use std::sync::Arc;
 use yew::format::{Json, Nothing};
 use yew::prelude::*;
 use yew::services::fetch::{FetchService, FetchTask, Request, Response};
@@ -8,6 +10,7 @@ use yew::web_sys::Element;
 
 pub mod model;
 pub mod string;
+pub mod transaction_card;
 pub mod view;
 
 const SECONDS_IN_DAY: u64 = 86400;
@@ -53,18 +56,17 @@ impl Model {
     }
 
     fn filtered_transactions(&self) -> Vec<Transaction> {
-        match &self.filter {
-            Some(f) => {
-                let filtered: Vec<Transaction> = self
-                    .transactions
-                    .iter()
-                    .filter(|tx| tx.message.to_lowercase().contains(&f.to_lowercase()))
-                    .cloned()
-                    .collect();
+        if let Some(ref f) = *self.filter {
+            let filtered: Vec<Transaction> = self
+                .transactions
+                .iter()
+                .filter(|tx| tx.message.to_lowercase().contains(&f.to_lowercase()))
+                .cloned()
+                .collect();
 
-                filtered
-            }
-            None => self.transactions.to_owned(),
+            filtered
+        } else {
+            self.transactions.to_owned()
         }
     }
 
@@ -140,8 +142,9 @@ impl Component for Model {
             transactions: vec![],
             loading: false,
             error: None,
-            filter: None,
+            filter: Arc::new(None),
             feed_paused: false,
+            content_filters: vec![],
             link,
             fetch_task: None,
             debounce_task: None,
@@ -238,13 +241,21 @@ impl Component for Model {
             }
             Msg::EditFilter(filter) => {
                 if filter.trim().is_empty() {
-                    self.filter = None;
+                    self.filter = Arc::new(None);
                 } else {
-                    self.filter = Some(filter.trim().into())
+                    self.filter = Arc::new(Some(filter.trim().into()));
                 }
 
                 self.root_ref.cast::<Element>().unwrap().set_scroll_top(0);
 
+                true
+            }
+            Msg::AddMessageFilter(message) => {
+                self.content_filters.push(message);
+                true
+            }
+            Msg::RemoveMessageFilter(message) => {
+                self.content_filters.retain(|f| f.eq(&message));
                 true
             }
             Msg::ToggleFeedPaused => {
@@ -312,11 +323,14 @@ impl Component for Model {
                     <div class="root" ref=self.root_ref.clone() style=root_style onscroll={self.link.callback(|_| Msg::OnScroll)}>
                         <div class="viewport" ref=self.viewport_ref.clone() style=viewport_style>
                             <div class="spacer" ref=self.spacer_ref.clone() style=spacer_style>
-                                {for transactions
-                                    .iter()
-                                    .enumerate()
-                                    .filter(|&(i, _)| i >= min && i <= max)
-                                    .map(|(_, tx)| tx.render(now, self.filter.as_ref()))
+                                {for transactions.iter().enumerate().filter(|&(i, _)| i >= min && i <= max).map(|(_, tx)| html! {
+                                    <TransactionCard
+                                        tx={tx.clone()}
+                                        now={now}
+                                        text_filter={self.filter.clone()}
+                                        add_filter_message={self.link.callback(|value| Msg::AddMessageFilter(value))}
+                                        remove_filter_message={self.link.callback(|value| Msg::RemoveMessageFilter(value))} />
+                                })
                                 }
                             </div>
                         </div>
