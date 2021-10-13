@@ -13,18 +13,8 @@ pub struct Props {
     pub remove_filter_message: Callback<String>,
 }
 
-pub struct TransactionCard(Props);
-
-impl TransactionCard {
-    fn render_message(&self, filter: Arc<Option<String>>) -> Html {
-        if let Some(f) = (*filter).clone() {
-            let parts = crate::string::split_keep(&self.0.tx.message, &f);
-
-            html! { {for parts.iter().map(|p| p.render())} }
-        } else {
-            html! { <span>{ &self.0.tx.message } </span> }
-        }
-    }
+pub struct TransactionCard {
+    props: Props,
 }
 
 impl Component for TransactionCard {
@@ -32,7 +22,7 @@ impl Component for TransactionCard {
     type Properties = Props;
 
     fn create(props: Self::Properties, _link: ComponentLink<Self>) -> Self {
-        Self(props)
+        Self { props }
     }
 
     fn update(&mut self, _msg: Self::Message) -> ShouldRender {
@@ -40,8 +30,8 @@ impl Component for TransactionCard {
     }
 
     fn change(&mut self, props: Self::Properties) -> ShouldRender {
-        if self.0 != props {
-            self.0 = props;
+        if self.props != props {
+            self.props = props;
             true
         } else {
             false
@@ -49,39 +39,39 @@ impl Component for TransactionCard {
     }
 
     fn view(&self) -> Html {
-        let animate = match self.0.tx.animate {
+        let animate = match self.props.tx.animate {
             Some(true) => Some("animate"),
             _ => None,
         };
 
-        let link = format!("https://etherscan.io/tx/{}", self.0.tx.hash);
+        let link = format!("https://etherscan.io/tx/{}", self.props.tx.hash);
 
         // Create human-readable time
-        let duration = chrono::Duration::seconds(self.0.tx.timestamp as i64 - self.0.now as i64);
+        let duration = chrono::Duration::seconds(self.props.tx.timestamp as i64 - self.props.now as i64);
         let human_time = chrono_humanize::HumanTime::from(duration);
 
         // Create ISO time representation
-        let naive = NaiveDateTime::from_timestamp(self.0.tx.timestamp as i64, 0);
+        let naive = NaiveDateTime::from_timestamp(self.props.tx.timestamp as i64, 0);
         let datetime: DateTime<Utc> = DateTime::from_utc(naive, Utc);
         let iso_time = datetime.to_rfc2822();
 
-        let message = self.0.tx.message.clone();
-        let from = match &self.0.tx.from {
+        let message = self.props.tx.message.clone();
+        let from = match &self.props.tx.from {
             Some(f) => f,
             None => "-",
         };
-        let to = match &self.0.tx.to {
+        let to = match &self.props.tx.to {
             Some(f) => f,
             None => "-",
         };
 
         html! {
-            <div class=classes!("card", animate) key=self.0.tx.hash.clone()>
+            <div class=classes!("card", animate) key=self.props.tx.hash.clone()>
                 <div class="card-header card-header-tx">
                     <p class="card-header-title">
                         <span>{ "Tx" }</span>
                         { crate::view::common::space() }
-                        <span class="has-text-weight-normal tx-hash">{ &self.0.tx.hash }</span>
+                        <span class="has-text-weight-normal tx-hash">{ &self.props.tx.hash }</span>
                         { crate::view::common::space() }
                         <span class="has-text-weight-normal is-size-7 tx-timestamp" title=iso_time>{ format!("({})", human_time) }</span>
                     </p>
@@ -89,7 +79,7 @@ impl Component for TransactionCard {
                         <button
                             class="card-header-icon card-header-icon-filter"
                             title="Filter for message"
-                            onclick={self.0.add_filter_message.reform(move |_| message.clone())}>
+                            onclick={self.props.add_filter_message.reform(move |_| message.clone())}>
                                 <i class="fas fa-search-plus" aria-hidden="true"></i>
                         </button>
                         <button class="card-header-icon card-header-icon-filter" title="Filter out message">
@@ -144,11 +134,23 @@ impl Component for TransactionCard {
                 <div>
                     <figure class="highlight">
                         <pre>
-                            <code>{ self.render_message(self.0.text_filter.clone()) }</code>
+                            <code>{ self.render_message(self.props.text_filter.clone()) }</code>
                         </pre>
                     </figure>
                 </div>
             </div>
+        }
+    }
+}
+
+impl TransactionCard {
+    fn render_message(&self, filter: Arc<Option<String>>) -> Html {
+        if let Some(f) = (*filter).clone() {
+            let parts = crate::string::split_keep(&self.props.tx.message, &f);
+
+            html! { {for parts.iter().map(|p| p.render())} }
+        } else {
+            html! { <span>{ &self.props.tx.message } </span> }
         }
     }
 }
