@@ -66,10 +66,18 @@ impl Component for TransactionCard {
         let iso_time = datetime.to_rfc2822();
 
         let message = self.0.tx.message.clone();
+        let from = match &self.0.tx.from {
+            Some(f) => f,
+            None => "-",
+        };
+        let to = match &self.0.tx.to {
+            Some(f) => f,
+            None => "-",
+        };
 
         html! {
             <div class=classes!("card", animate) key=self.0.tx.hash.clone()>
-                <header class="card-header">
+                <div class="card-header card-header-tx">
                     <p class="card-header-title">
                         <span>{ "Tx" }</span>
                         { crate::view::common::space() }
@@ -93,7 +101,46 @@ impl Component for TransactionCard {
                             <i class="fas fa-external-link" aria-hidden="true"></i>
                         </a>
                     </button>
-                </header>
+                </div>
+
+                <div class="card-header is-size-7">
+                    <div class="card-header-from">
+                        <p class="card-header-title">
+                            <span>{ "From" }</span>
+                            { crate::view::common::space() }
+                            <span class="has-text-weight-normal">{ from }</span>
+                        </p>
+                        <div class="card-header-filters pr-6">
+                            <button
+                                class="card-header-icon card-header-icon-filter"
+                                title="Filter for sender">
+                                    <i class="fas fa-search-plus" aria-hidden="true"></i>
+                            </button>
+                            <button class="card-header-icon card-header-icon-filter" title="Filter out sender">
+                                <i class="fas fa-search-minus" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="card-header-to is-flex-grow-1">
+                        <p class="card-header-title">
+                            <span>{ "To" }</span>
+                            { crate::view::common::space() }
+                            <span class="has-text-weight-normal">{ to }</span>
+                        </p>
+                        <div class="card-header-filters">
+                            <button
+                                class="card-header-icon card-header-icon-filter"
+                                title="Filter for received">
+                                    <i class="fas fa-search-plus" aria-hidden="true"></i>
+                            </button>
+                            <button class="card-header-icon card-header-icon-filter" title="Filter out received">
+                                <i class="fas fa-search-minus" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
                 <div>
                     <figure class="highlight">
                         <pre>

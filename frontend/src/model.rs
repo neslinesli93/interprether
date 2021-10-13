@@ -56,6 +56,8 @@ pub struct Transaction {
     pub message: String,
     #[serde(rename = "t")]
     pub timestamp: u64,
+    pub from: Option<String>,
+    pub to: Option<String>,
     // Local model
     pub animate: Option<bool>,
 }

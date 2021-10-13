@@ -1,12 +1,14 @@
 @import "loader";
 
+$card-height: 150px;
+
 html {
   overflow-y: auto;
 }
 
 .card {
   margin: 24px;
-  height: 100px;
+  height: $card-height;
 
   &:first-child {
     margin-top: 1px;
@@ -37,6 +39,10 @@ html {
   }
 }
 
+.card-header {
+  box-shadow: none;
+}
+
 .card-header-title {
   overflow: hidden;
   flex-grow: 0;
@@ -46,9 +52,20 @@ html {
   opacity: 0;
 }
 
-.card:hover {
+.card-header-tx:hover {
   .card-header-icon-filter {
     opacity: 1;
+  }
+}
+
+.card-header-from,
+.card-header-to {
+  display: flex;
+
+  &:hover {
+    .card-header-icon-filter {
+      opacity: 1;
+    }
   }
 }
 
@@ -67,7 +84,7 @@ html {
 }
 
 pre {
-  max-height: calc(100px - 38px);
+  max-height: calc($card-height - 38px);
   white-space: pre-wrap;
   background-color: #efefef;
 }
@@ -107,6 +124,10 @@ pre {
 
 .root {
   overflow-y: auto;
+}
+
+.spacer {
+  will-change: transform;
 }
 
 /* Bulma hotfix */
