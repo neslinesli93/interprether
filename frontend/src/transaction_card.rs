@@ -1,5 +1,5 @@
 use crate::model::Transaction;
-use crate::transaction_filter::{TransactionFilter, TransactionFilterKind};
+use crate::transaction_filter::{TransactionFilter, TransactionFilterField, TransactionFilterOperation};
 use chrono::{DateTime, NaiveDateTime, Utc};
 use std::sync::Arc;
 use yew::classes;
@@ -59,16 +59,10 @@ impl Component for TransactionCard {
         let message = self.props.tx.message.clone();
         let message_copy = self.props.tx.message.clone();
 
-        let from: String = match self.props.tx.from {
-            Some(ref s) => s.clone(),
-            None => String::from("-"),
-        };
+        let from = self.props.tx.from.clone();
         let from_copy = from.clone();
 
-        let to: String = match self.props.tx.to {
-            Some(ref s) => s.clone(),
-            None => String::from("-"),
-        };
+        let to = self.props.tx.to.clone();
         let to_copy = to.clone();
 
         html! {
@@ -85,13 +79,13 @@ impl Component for TransactionCard {
                         <button
                             class="card-header-icon card-header-icon-filter"
                             title="Filter for message"
-                            onclick={self.props.add_inclusion_filter.reform(move |_| TransactionFilter{kind: TransactionFilterKind::Message, text: message.clone()})}>
+                            onclick={self.props.add_inclusion_filter.reform(move |_| TransactionFilter{field: TransactionFilterField::Message, operation: TransactionFilterOperation::Include, text: message.clone()})}>
                                 <i class="fas fa-search-plus" aria-hidden="true"></i>
                         </button>
                         <button
                             class="card-header-icon card-header-icon-filter"
                             title="Filter out message"
-                            onclick={self.props.add_exclusion_filter.reform(move |_| TransactionFilter{kind: TransactionFilterKind::Message, text: message_copy.clone()})}>
+                            onclick={self.props.add_exclusion_filter.reform(move |_| TransactionFilter{field: TransactionFilterField::Message, operation: TransactionFilterOperation::Exclude, text: message_copy.clone()})}>
                             <i class="fas fa-search-minus" aria-hidden="true"></i>
                         </button>
                     </div>
@@ -113,13 +107,13 @@ impl Component for TransactionCard {
                             <button
                                 class="card-header-icon card-header-icon-filter"
                                 title="Filter for sender"
-                                onclick={self.props.add_inclusion_filter.reform(move |_| TransactionFilter{kind: TransactionFilterKind::From, text: from.clone()})}>
+                                onclick={self.props.add_inclusion_filter.reform(move |_| TransactionFilter{field: TransactionFilterField::From, operation: TransactionFilterOperation::Include, text: from.clone()})}>
                                     <i class="fas fa-search-plus" aria-hidden="true"></i>
                             </button>
                             <button
                                 class="card-header-icon card-header-icon-filter"
                                 title="Filter out sender"
-                                onclick={self.props.add_exclusion_filter.reform(move |_| TransactionFilter{kind: TransactionFilterKind::From, text: from_copy.clone()})}>
+                                onclick={self.props.add_exclusion_filter.reform(move |_| TransactionFilter{field: TransactionFilterField::From, operation: TransactionFilterOperation::Exclude, text: from_copy.clone()})}>
                                 <i class="fas fa-search-minus" aria-hidden="true"></i>
                             </button>
                         </div>
@@ -135,13 +129,13 @@ impl Component for TransactionCard {
                             <button
                                 class="card-header-icon card-header-icon-filter"
                                 title="Filter for receiver"
-                                onclick={self.props.add_inclusion_filter.reform(move |_| TransactionFilter{kind: TransactionFilterKind::To, text: to.clone()})}>
+                                onclick={self.props.add_inclusion_filter.reform(move |_| TransactionFilter{field: TransactionFilterField::To, operation: TransactionFilterOperation::Include, text: to.clone()})}>
                                     <i class="fas fa-search-plus" aria-hidden="true"></i>
                             </button>
                             <button
                                 class="card-header-icon card-header-icon-filter"
                                 title="Filter out receiver"
-                                onclick={self.props.add_exclusion_filter.reform(move |_| TransactionFilter{kind: TransactionFilterKind::To, text: to_copy.clone()})}>
+                                onclick={self.props.add_exclusion_filter.reform(move |_| TransactionFilter{field: TransactionFilterField::To, operation: TransactionFilterOperation::Exclude, text: to_copy.clone()})}>
                                 <i class="fas fa-search-minus" aria-hidden="true"></i>
                             </button>
                         </div>

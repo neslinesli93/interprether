@@ -1,5 +1,6 @@
 use crate::transaction_filter::TransactionFilter;
 use serde::Deserialize;
+use std::collections::HashMap;
 use std::sync::Arc;
 use yew::prelude::*;
 use yew::services::fetch::FetchTask;
@@ -33,6 +34,8 @@ pub struct Model {
     pub feed_paused: bool,
     // Advanced filters
     pub transaction_filters: Vec<TransactionFilter>,
+    pub inclusion_filters: HashMap<String, Vec<TransactionFilter>>,
+    pub exclusion_filters: HashMap<String, Vec<TransactionFilter>>,
     // Cmd bus
     pub link: ComponentLink<Self>,
     pub fetch_task: Option<FetchTask>,
@@ -57,8 +60,14 @@ pub struct Transaction {
     pub message: String,
     #[serde(rename = "t")]
     pub timestamp: u64,
-    pub from: Option<String>,
-    pub to: Option<String>,
+    #[serde(default = "default_address")]
+    pub from: String,
+    #[serde(default = "default_address")]
+    pub to: String,
     // Local model
     pub animate: Option<bool>,
+}
+
+fn default_address() -> String {
+    "-".to_string()
 }

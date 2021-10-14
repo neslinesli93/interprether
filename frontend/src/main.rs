@@ -1,5 +1,6 @@
 use crate::model::{Model, Msg, Transaction};
 use crate::transaction_card::TransactionCard;
+use std::collections::HashMap;
 use std::sync::Arc;
 use yew::format::{Json, Nothing};
 use yew::prelude::*;
@@ -56,20 +57,53 @@ impl Model {
         FetchService::fetch(request, callback).expect("Failed to start request")
     }
 
-    fn filtered_transactions(&self) -> Vec<Transaction> {
-        yew::services::ConsoleService::log(format!("Filters: {:?}", self.transaction_filters).as_str());
+    fn in_inclusion_filters(&self, s: String) -> bool {
+        self.inclusion_filters
+            .get(&s)
+            .map(|v| v.iter().find(|r| r.text == s).is_some())
+            .unwrap_or(false)
+    }
 
+    fn in_exclusion_filters(&self, s: String) -> bool {
+        self.exclusion_filters
+            .get(&s)
+            .map(|v| v.iter().find(|r| r.text == s).is_some())
+            .unwrap_or(false)
+    }
+
+    fn filter_transaction(&self, tx: &&Transaction) -> bool {
+        if self.inclusion_filters.keys().len() > 0 {
+            return self.in_inclusion_filters(tx.message.clone())
+                || self.in_inclusion_filters(tx.from.clone())
+                || self.in_inclusion_filters(tx.to.clone());
+        }
+
+        if self.exclusion_filters.keys().len() > 0 {
+            if self.in_exclusion_filters(tx.message.clone())
+                || self.in_exclusion_filters(tx.from.clone())
+                || self.in_exclusion_filters(tx.to.clone())
+            {
+                return false;
+            }
+        }
+
+        true
+    }
+
+    fn filtered_transactions(&self) -> Vec<Transaction> {
         if let Some(ref f) = *self.filter {
-            let filtered: Vec<Transaction> = self
-                .transactions
+            self.transactions
                 .iter()
                 .filter(|tx| tx.message.to_lowercase().contains(&f.to_lowercase()))
+                .filter(|tx| self.filter_transaction(tx))
                 .cloned()
-                .collect();
-
-            filtered
+                .collect()
         } else {
-            self.transactions.to_owned()
+            self.transactions
+                .iter()
+                .filter(|tx| self.filter_transaction(tx))
+                .cloned()
+                .collect()
         }
     }
 
@@ -99,11 +133,11 @@ impl Model {
     }
 
     fn view_filter_description(&self) -> Html {
-        if self.filter.is_some() {
+        if self.filter.is_some() || !self.transaction_filters.is_empty() {
             html! {
                 <>
                     { view::common::space() }
-                    <span> { "(w/ filter)" } </span>
+                    <span> { "(w/ filters)" } </span>
                 </>
             }
         } else {
@@ -148,6 +182,8 @@ impl Component for Model {
             filter: Arc::new(None),
             feed_paused: false,
             transaction_filters: vec![],
+            inclusion_filters: HashMap::new(),
+            exclusion_filters: HashMap::new(),
             link,
             fetch_task: None,
             debounce_task: None,
@@ -254,11 +290,27 @@ impl Component for Model {
                 true
             }
             Msg::AddInclusionFilter(filter) => {
-                self.transaction_filters.push(filter);
+                self.transaction_filters.push(filter.clone());
+
+                match self.inclusion_filters.get_mut(&filter.text) {
+                    Some(v) => v.push(filter),
+                    None => {
+                        self.inclusion_filters.insert(filter.text.clone(), vec![filter]);
+                    }
+                };
+
                 true
             }
             Msg::AddExclusionFilter(filter) => {
-                self.transaction_filters.push(filter);
+                self.transaction_filters.push(filter.clone());
+
+                match self.exclusion_filters.get_mut(&filter.text) {
+                    Some(v) => v.push(filter),
+                    None => {
+                        self.exclusion_filters.insert(filter.text.clone(), vec![filter]);
+                    }
+                };
+
                 true
             }
             Msg::ToggleFeedPaused => {
