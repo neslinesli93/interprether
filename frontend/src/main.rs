@@ -11,6 +11,7 @@ use yew::web_sys::Element;
 pub mod model;
 pub mod string;
 pub mod transaction_card;
+pub mod transaction_filter;
 pub mod view;
 
 const SECONDS_IN_DAY: u64 = 86400;
@@ -56,6 +57,8 @@ impl Model {
     }
 
     fn filtered_transactions(&self) -> Vec<Transaction> {
+        yew::services::ConsoleService::log(format!("Filters: {:?}", self.transaction_filters).as_str());
+
         if let Some(ref f) = *self.filter {
             let filtered: Vec<Transaction> = self
                 .transactions
@@ -144,7 +147,7 @@ impl Component for Model {
             error: None,
             filter: Arc::new(None),
             feed_paused: false,
-            content_filters: vec![],
+            transaction_filters: vec![],
             link,
             fetch_task: None,
             debounce_task: None,
@@ -250,12 +253,12 @@ impl Component for Model {
 
                 true
             }
-            Msg::AddMessageFilter(message) => {
-                self.content_filters.push(message);
+            Msg::AddInclusionFilter(filter) => {
+                self.transaction_filters.push(filter);
                 true
             }
-            Msg::RemoveMessageFilter(message) => {
-                self.content_filters.retain(|f| f.eq(&message));
+            Msg::AddExclusionFilter(filter) => {
+                self.transaction_filters.push(filter);
                 true
             }
             Msg::ToggleFeedPaused => {
@@ -328,8 +331,8 @@ impl Component for Model {
                                         tx={tx.clone()}
                                         now={now}
                                         text_filter={self.filter.clone()}
-                                        add_filter_message={self.link.callback(|value| Msg::AddMessageFilter(value))}
-                                        remove_filter_message={self.link.callback(|value| Msg::RemoveMessageFilter(value))} />
+                                        add_inclusion_filter={self.link.callback(|value| Msg::AddInclusionFilter(value))}
+                                        add_exclusion_filter={self.link.callback(|value| Msg::AddExclusionFilter(value))} />
                                 })
                                 }
                             </div>

@@ -1,3 +1,4 @@
+use crate::transaction_filter::TransactionFilter;
 use serde::Deserialize;
 use std::sync::Arc;
 use yew::prelude::*;
@@ -14,8 +15,8 @@ pub enum Msg {
     DebounceFilter(String),
     EditFilter(String),
     // Advanced filters
-    AddMessageFilter(String),
-    RemoveMessageFilter(String),
+    AddInclusionFilter(TransactionFilter),
+    AddExclusionFilter(TransactionFilter),
     // Toggle
     ToggleFeedPaused,
     // Virtual scroll
@@ -31,7 +32,7 @@ pub struct Model {
     pub filter: Arc<Option<String>>,
     pub feed_paused: bool,
     // Advanced filters
-    pub content_filters: Vec<String>,
+    pub transaction_filters: Vec<TransactionFilter>,
     // Cmd bus
     pub link: ComponentLink<Self>,
     pub fetch_task: Option<FetchTask>,
