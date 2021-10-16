@@ -1,4 +1,4 @@
-use crate::transaction_filter::TransactionFilter;
+use crate::components::filter::TransactionFilter;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::sync::Arc;

@@ -1,5 +1,6 @@
+use crate::components::filter::{TransactionFilter, TransactionFilterField, TransactionFilterOperation};
+use crate::components::transaction_message::TransactionMessage;
 use crate::model::Transaction;
-use crate::transaction_filter::{TransactionFilter, TransactionFilterField, TransactionFilterOperation};
 use chrono::{DateTime, NaiveDateTime, Utc};
 use std::sync::Arc;
 use yew::classes;
@@ -70,9 +71,9 @@ impl Component for TransactionCard {
                 <div class="card-header card-header-tx">
                     <p class="card-header-title">
                         <span>{ "Tx" }</span>
-                        { crate::view::common::space() }
+                        { crate::view_helpers::space() }
                         <span class="has-text-weight-normal tx-hash">{ &self.props.tx.hash }</span>
-                        { crate::view::common::space() }
+                        { crate::view_helpers::space() }
                         <span class="has-text-weight-normal is-size-7 tx-timestamp" title=iso_time>{ format!("({})", human_time) }</span>
                     </p>
                     <div class="card-header-filters">
@@ -100,7 +101,7 @@ impl Component for TransactionCard {
                     <div class="card-header-from">
                         <p class="card-header-title">
                             <span>{ "From" }</span>
-                            { crate::view::common::space() }
+                            { crate::view_helpers::space() }
                             <span class="has-text-weight-normal">{ from.clone() }</span>
                         </p>
                         <div class="card-header-filters pr-6">
@@ -122,7 +123,7 @@ impl Component for TransactionCard {
                     <div class="card-header-to is-flex-grow-1">
                         <p class="card-header-title">
                             <span>{ "To" }</span>
-                            { crate::view::common::space() }
+                            { crate::view_helpers::space() }
                             <span class="has-text-weight-normal">{ to.clone() }</span>
                         </p>
                         <div class="card-header-filters">
@@ -145,23 +146,15 @@ impl Component for TransactionCard {
                 <div>
                     <figure class="highlight">
                         <pre>
-                            <code>{ self.render_message(self.props.text_filter.clone()) }</code>
+                            <code>
+                                <TransactionMessage
+                                    message={self.props.tx.message.clone()}
+                                    filter={self.props.text_filter.clone()} />
+                            </code>
                         </pre>
                     </figure>
                 </div>
             </div>
-        }
-    }
-}
-
-impl TransactionCard {
-    fn render_message(&self, filter: Arc<Option<String>>) -> Html {
-        if let Some(f) = (*filter).clone() {
-            let parts = crate::string::split_keep(&self.props.tx.message, &f);
-
-            html! { {for parts.iter().map(|p| p.render())} }
-        } else {
-            html! { <span>{ &self.props.tx.message } </span> }
         }
     }
 }

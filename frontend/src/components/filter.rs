@@ -75,7 +75,7 @@ impl Filter {
             html! {
                 <>
                 { "NOT" }
-                { crate::view::common::space() }
+                { crate::view_helpers::space() }
                 </>
             }
         } else {
