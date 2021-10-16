@@ -58,11 +58,12 @@ impl Model {
         FetchService::fetch(request, callback).expect("Failed to start request")
     }
 
-    fn in_inclusion_filters(&self, s: String) -> bool {
-        self.inclusion_filters
-            .get(&s)
-            .map(|v| v.iter().find(|r| r.text == s).is_some())
-            .unwrap_or(false)
+    fn in_inclusion_filters(&self, tx: &&Transaction) -> bool {
+        self.inclusion_filters.values().all(|v| {
+            v.iter()
+                .find(|r| r.text == tx.from || r.text == tx.to || r.text == tx.message)
+                .is_some()
+        })
     }
 
     fn in_exclusion_filters(&self, s: String) -> bool {
@@ -73,22 +74,25 @@ impl Model {
     }
 
     fn filter_transaction(&self, tx: &&Transaction) -> bool {
-        if self.inclusion_filters.keys().len() > 0 {
-            return self.in_inclusion_filters(tx.message.clone())
-                || self.in_inclusion_filters(tx.from.clone())
-                || self.in_inclusion_filters(tx.to.clone());
+        let mut keep = if self.inclusion_filters.keys().len() > 0 {
+            self.in_inclusion_filters(tx)
+        } else {
+            true
+        };
+
+        if !keep {
+            return false;
         }
 
-        if self.exclusion_filters.keys().len() > 0 {
-            if self.in_exclusion_filters(tx.message.clone())
+        keep = if self.exclusion_filters.keys().len() > 0 {
+            !(self.in_exclusion_filters(tx.message.clone())
                 || self.in_exclusion_filters(tx.from.clone())
-                || self.in_exclusion_filters(tx.to.clone())
-            {
-                return false;
-            }
-        }
+                || self.in_exclusion_filters(tx.to.clone()))
+        } else {
+            true
+        };
 
-        true
+        keep
     }
 
     fn filtered_transactions(&self) -> Vec<Transaction> {
