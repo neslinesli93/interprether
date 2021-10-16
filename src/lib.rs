@@ -1,2 +1,2 @@
-pub mod block;
 pub mod redis;
+pub mod transaction;

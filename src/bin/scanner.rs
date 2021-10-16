@@ -1,6 +1,6 @@
 use anyhow::Result;
 use dotenv::dotenv;
-use interprether::{block, redis};
+use interprether::{redis, transaction};
 use std::time::Duration;
 
 #[tokio::main]
@@ -30,7 +30,7 @@ async fn main() -> Result<()> {
 
             let block = web3.eth().block_with_txs(block_number.into()).await?.unwrap();
 
-            let mut transactions: Vec<block::Transaction> = vec![];
+            let mut transactions: Vec<transaction::Transaction> = vec![];
             for tx in block.transactions.iter() {
                 let input = tx.input.clone();
 
@@ -38,11 +38,13 @@ async fn main() -> Result<()> {
                     // Remove NULL bytes
                     let cleaned_message = message.replace(char::from(0), "");
                     if !cleaned_message.is_empty() {
-                        transactions.push(block::Transaction::new(
-                            tx.hash,
-                            cleaned_message,
-                            block.timestamp.as_u64(),
-                        ));
+                        transactions.push(transaction::Transaction {
+                            hash: format!("{:?}", tx.hash),
+                            message: cleaned_message,
+                            timestamp: block.timestamp.as_u64(),
+                            from: tx.from.map(|from| format!("{:?}", from)),
+                            to: tx.to.map(|to| format!("{:?}", to)),
+                        });
                     }
                 });
             }
