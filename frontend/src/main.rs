@@ -43,7 +43,7 @@ impl Component for Model {
             transactions: vec![],
             loading: false,
             error: None,
-            filter: Arc::new(None),
+            text_filter: Arc::new(None),
             feed_paused: false,
             transaction_filters: vec![],
             inclusion_filters: HashMap::new(),
@@ -144,9 +144,9 @@ impl Component for Model {
             }
             Msg::EditFilter(filter) => {
                 if filter.trim().is_empty() {
-                    self.filter = Arc::new(None);
+                    self.text_filter = Arc::new(None);
                 } else {
-                    self.filter = Arc::new(Some(filter.trim().into()));
+                    self.text_filter = Arc::new(Some(filter.trim().into()));
                 }
 
                 self.root_ref.cast::<Element>().unwrap().set_scroll_top(0);
@@ -267,7 +267,7 @@ impl Component for Model {
                                     <TransactionCard
                                         tx={tx.clone()}
                                         now={now}
-                                        text_filter={self.filter.clone()}
+                                        text_filter={self.text_filter.clone()}
                                         add_inclusion_filter={self.link.callback(|value| Msg::AddFilter(value))}
                                         add_exclusion_filter={self.link.callback(|value| Msg::AddFilter(value))} />
                                 })}
@@ -357,7 +357,7 @@ impl Model {
     }
 
     fn filtered_transactions(&self) -> Vec<Transaction> {
-        if let Some(ref f) = *self.filter {
+        if let Some(ref f) = *self.text_filter {
             self.transactions
                 .iter()
                 .filter(|tx| tx.message.to_lowercase().contains(&f.to_lowercase()))

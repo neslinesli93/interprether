@@ -30,7 +30,7 @@ pub struct Model {
     pub transactions: Vec<Transaction>,
     pub loading: bool,
     pub error: Option<String>,
-    pub filter: Arc<Option<String>>,
+    pub text_filter: Arc<Option<String>>,
     pub feed_paused: bool,
     // Advanced filters
     pub transaction_filters: Vec<TransactionFilter>,
