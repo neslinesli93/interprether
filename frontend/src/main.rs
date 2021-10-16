@@ -268,8 +268,7 @@ impl Component for Model {
                                         tx={tx.clone()}
                                         now={now}
                                         text_filter={self.text_filter.clone()}
-                                        add_inclusion_filter={self.link.callback(|value| Msg::AddFilter(value))}
-                                        add_exclusion_filter={self.link.callback(|value| Msg::AddFilter(value))} />
+                                        add_filter={self.link.callback(|value| Msg::AddFilter(value))} />
                                 })}
                             </div>
                         </div>
