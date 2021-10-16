@@ -179,7 +179,9 @@ impl Component for Model {
                 };
 
                 // Remove entry
-                map.get_mut(&filter.text).map(|v| v.retain(|f| f.ne(&filter)));
+                if let Some(v) = map.get_mut(&filter.text) {
+                    v.retain(|f| f.ne(&filter))
+                }
 
                 // If resulting vec is empty, remove the key/value pair from the map
                 let len = map.get(&filter.text).map(|v| v.len()).unwrap_or(0);
@@ -244,7 +246,7 @@ impl Component for Model {
                             {for self.transaction_filters.iter().map(|f| html! {
                                 <Filter
                                     filter={f.clone()}
-                                    remove_filter={self.link.callback(|value| Msg::RemoveFilter(value))} />
+                                    remove_filter={self.link.callback(Msg::RemoveFilter)} />
                             })}
                         </div>
                     </div>
@@ -268,7 +270,7 @@ impl Component for Model {
                                         tx={tx.clone()}
                                         now={now}
                                         text_filter={self.text_filter.clone()}
-                                        add_filter={self.link.callback(|value| Msg::AddFilter(value))} />
+                                        add_filter={self.link.callback(Msg::AddFilter)} />
                                 })}
                             </div>
                         </div>
@@ -321,15 +323,14 @@ impl Model {
     fn in_inclusion_filters(&self, tx: &&Transaction) -> bool {
         self.inclusion_filters.values().all(|v| {
             v.iter()
-                .find(|r| r.text == tx.from || r.text == tx.to || r.text == tx.message)
-                .is_some()
+                .any(|r| r.text == tx.from || r.text == tx.to || r.text == tx.message)
         })
     }
 
     fn in_exclusion_filters(&self, s: String) -> bool {
         self.exclusion_filters
             .get(&s)
-            .map(|v| v.iter().find(|r| r.text == s).is_some())
+            .map(|v| v.iter().any(|r| r.text == s))
             .unwrap_or(false)
     }
 
