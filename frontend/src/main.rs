@@ -1,5 +1,6 @@
 use crate::model::{Model, Msg, Transaction};
 use crate::transaction_card::TransactionCard;
+use crate::transaction_filter::{Filter, TransactionFilterOperation};
 use std::collections::HashMap;
 use std::sync::Arc;
 use yew::format::{Json, Nothing};
@@ -289,27 +290,39 @@ impl Component for Model {
 
                 true
             }
-            Msg::AddInclusionFilter(filter) => {
+            Msg::AddFilter(filter) => {
                 self.transaction_filters.push(filter.clone());
 
-                match self.inclusion_filters.get_mut(&filter.text) {
+                let map = match filter.operation {
+                    TransactionFilterOperation::Include => &mut self.inclusion_filters,
+                    TransactionFilterOperation::Exclude => &mut self.exclusion_filters,
+                };
+
+                match map.get_mut(&filter.text) {
                     Some(v) => v.push(filter),
                     None => {
-                        self.inclusion_filters.insert(filter.text.clone(), vec![filter]);
+                        map.insert(filter.text.clone(), vec![filter]);
                     }
                 };
 
                 true
             }
-            Msg::AddExclusionFilter(filter) => {
-                self.transaction_filters.push(filter.clone());
+            Msg::RemoveFilter(filter) => {
+                self.transaction_filters.retain(|f| f.ne(&filter));
 
-                match self.exclusion_filters.get_mut(&filter.text) {
-                    Some(v) => v.push(filter),
-                    None => {
-                        self.exclusion_filters.insert(filter.text.clone(), vec![filter]);
-                    }
+                let map = match filter.operation {
+                    TransactionFilterOperation::Include => &mut self.inclusion_filters,
+                    TransactionFilterOperation::Exclude => &mut self.exclusion_filters,
                 };
+
+                // Remove entry
+                map.get_mut(&filter.text).map(|v| v.retain(|f| f.ne(&filter)));
+
+                // If resulting vec is empty, remove the key/value pair from the map
+                let len = map.get(&filter.text).map(|v| v.len()).unwrap_or(0);
+                if len == 0 {
+                    map.remove(&filter.text);
+                }
 
                 true
             }
@@ -363,6 +376,16 @@ impl Component for Model {
 
                     <input class="input" type="search" placeholder="Search transactions" oninput=oninput />
 
+                    <div class="filters">
+                        <div class="field is-grouped is-grouped-multiline">
+                            {for self.transaction_filters.iter().map(|f| html! {
+                                <Filter
+                                    filter={f.clone()}
+                                    remove_filter={self.link.callback(|value| Msg::RemoveFilter(value))} />
+                            })}
+                        </div>
+                    </div>
+
                     <div class="settings">
                         <span class="transactions-description">
                             { format!{"{} transactions in the last 24 hours", transactions.len()} }
@@ -383,10 +406,9 @@ impl Component for Model {
                                         tx={tx.clone()}
                                         now={now}
                                         text_filter={self.filter.clone()}
-                                        add_inclusion_filter={self.link.callback(|value| Msg::AddInclusionFilter(value))}
-                                        add_exclusion_filter={self.link.callback(|value| Msg::AddExclusionFilter(value))} />
-                                })
-                                }
+                                        add_inclusion_filter={self.link.callback(|value| Msg::AddFilter(value))}
+                                        add_exclusion_filter={self.link.callback(|value| Msg::AddFilter(value))} />
+                                })}
                             </div>
                         </div>
                     </div>

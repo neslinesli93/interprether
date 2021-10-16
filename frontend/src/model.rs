@@ -16,8 +16,8 @@ pub enum Msg {
     DebounceFilter(String),
     EditFilter(String),
     // Advanced filters
-    AddInclusionFilter(TransactionFilter),
-    AddExclusionFilter(TransactionFilter),
+    AddFilter(TransactionFilter),
+    RemoveFilter(TransactionFilter),
     // Toggle
     ToggleFeedPaused,
     // Virtual scroll

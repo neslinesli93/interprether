@@ -90,9 +90,12 @@ pre {
 }
 
 .input {
-  margin-bottom: 2rem;
   margin-left: 24px;
   width: calc(100% - 24px);
+}
+
+.filters {
+  margin: 12px 24px 24px 24px;
 }
 
 .settings {
