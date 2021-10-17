@@ -69,5 +69,6 @@ jobs:
           port: 22
           envs: WEB3_PROVIDER_URL
           script: |
+            export WEB3_PROVIDER_URL=${{ secrets.WEB3_PROVIDER_URL }}
             docker-compose pull
             docker-compose up --detach
