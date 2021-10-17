@@ -207,6 +207,28 @@ impl Component for Model {
 
                 true
             }
+            Msg::GenerateShareableUrl => {
+                let text_filter = match (*self.text_filter).clone() {
+                    Some(f) => Some(f),
+                    None => None,
+                };
+
+                let filters = if self.transaction_filters.is_empty() {
+                    None
+                } else {
+                    Some(self.transaction_filters.clone())
+                };
+
+                let params = QueryParams { text_filter, filters };
+                let encoded = serde_qs::to_string(&params).unwrap();
+
+                // yew::services::ConsoleService::log(format!("encoded: {:?}", encoded).as_str());
+                let window = yew::utils::window();
+                let url = format!("{}?{}", window.location().origin().unwrap(), encoded);
+                window.location().set_href(&url).unwrap();
+
+                false
+            }
             Msg::ToggleFeedPaused => {
                 self.feed_paused = !self.feed_paused;
 
@@ -245,6 +267,11 @@ impl Component for Model {
         let min = self.start_index() as usize;
         let max = (self.start_index() + self.visible_items_count() - 1) as usize;
 
+        let filter = match (*self.text_filter).clone() {
+            Some(f) => f,
+            None => "".to_string(),
+        };
+
         html! {
             <>
             <Hero />
@@ -255,7 +282,10 @@ impl Component for Model {
 
                     {self.view_error()}
 
-                    <input class="input" type="search" placeholder="Search transactions" oninput=oninput />
+                    <input class="input" type="search" placeholder="Search transactions" value={filter} oninput=oninput />
+                    <button onclick={self.link.callback(|_| Msg::GenerateShareableUrl)}>
+                        {"Share"}
+                    </button>
 
                     <div class="filters">
                         <div class="field is-grouped is-grouped-multiline">
@@ -307,9 +337,13 @@ impl Component for Model {
             }
 
             // Check if query string contains some filters
-            let query_string = window.location().search().unwrap_or("".to_string());
+            let mut query_string = window.location().search().unwrap_or("".to_string());
+            if query_string.len() >= 1 {
+                query_string.replace_range(0..1, "&");
+            }
             let qs_config = serde_qs::Config::new(5, false);
             let params: QueryParams = qs_config.deserialize_str(&query_string).unwrap_or_default();
+            yew::services::ConsoleService::log(format!("params: {:?}", params).as_str());
 
             if let Some(text_filter) = params.text_filter {
                 self.link

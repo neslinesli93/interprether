@@ -18,6 +18,8 @@ pub enum Msg {
     // Advanced filters
     AddFilter(TransactionFilter),
     RemoveFilter(TransactionFilter),
+    // Generate URL
+    GenerateShareableUrl,
     // Toggle
     ToggleFeedPaused,
     // Virtual scroll
