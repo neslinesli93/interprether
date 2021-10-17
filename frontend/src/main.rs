@@ -1,7 +1,8 @@
-use crate::components::filter::{Filter, TransactionFilterOperation};
+use crate::components::filter::{Filter, TransactionFilter, TransactionFilterOperation};
 use crate::components::hero::Hero;
 use crate::components::transaction_card::TransactionCard;
 use crate::model::{Model, Msg, Transaction};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use yew::format::{Json, Nothing};
@@ -26,6 +27,21 @@ const NODE_PADDING: i32 = 2;
 const ELEM_HEIGHT_DESKTOP: i32 = 150;
 const ELEM_HEIGHT_MOBILE: i32 = 220;
 const ELEM_MARGIN: i32 = 24;
+
+#[derive(Debug, PartialEq, Deserialize, Serialize)]
+struct QueryParams {
+    text_filter: Option<String>,
+    filters: Option<Vec<TransactionFilter>>,
+}
+
+impl Default for QueryParams {
+    fn default() -> Self {
+        QueryParams {
+            text_filter: None,
+            filters: None,
+        }
+    }
+}
 
 fn current_timestamp() -> u64 {
     let current_date: js_sys::Date = js_sys::Date::new_0();
@@ -283,12 +299,31 @@ impl Component for Model {
 
     fn rendered(&mut self, first_render: bool) {
         if first_render {
+            // Init fixed row height based on window size
             let window = yew::utils::window();
             let width = window.inner_width().unwrap().as_f64().unwrap() as i32;
             if width <= MOBILE_WIDTH {
                 self.row_height = ELEM_HEIGHT_MOBILE + ELEM_MARGIN;
             }
 
+            // Check if query string contains some filters
+            let query_string = window.location().search().unwrap_or("".to_string());
+            let qs_config = serde_qs::Config::new(5, false);
+            let params: QueryParams = qs_config.deserialize_str(&query_string).unwrap_or_default();
+
+            if let Some(text_filter) = params.text_filter {
+                self.link
+                    .callback(move |_| Msg::EditFilter(text_filter.clone()))
+                    .emit(());
+            }
+
+            if let Some(v) = params.filters {
+                for filter in v {
+                    self.link.callback(move |_| Msg::AddFilter(filter.clone())).emit(());
+                }
+            }
+
+            // Fetch first batch of transactions
             let initial_fetch = self.link.callback(|_| Msg::FetchTransactions);
             initial_fetch.emit(());
         }
