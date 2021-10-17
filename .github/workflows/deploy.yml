@@ -48,20 +48,22 @@ jobs:
       - name: Copy files to server
         uses: Pendect/action-rsyncer@v1.1.0
         env:
-          DEPLOY_KEY: ${{secrets.DEPLOY_KEY}}
+          DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
         with:
           flags: "-avzr --delete"
           src: "./docker-compose.prod.yml"
-          dest: "root@${{secrets.DEPLOY_HOST}}:/root/docker-compose.yml"
+          dest: "root@${{ secrets.DEPLOY_HOST }}:/root/docker-compose.yml"
 
       - name: Restart containers
         uses: appleboy/ssh-action@master
+        env:
+          WEB3_PROVIDER_URL: ${{ secrets.WEB3_PROVIDER_URL }}
         with:
-          host: ${{secrets.DEPLOY_HOST}}
+          host: ${{ secrets.DEPLOY_HOST }}
           username: root
-          key: ${{secrets.DEPLOY_KEY}}
+          key: ${{ secrets.DEPLOY_KEY }}
           port: 22
+          envs: WEB3_PROVIDER_URL
           script: |
-            source ~/.bashrc
             docker-compose pull
             docker-compose up --detach
