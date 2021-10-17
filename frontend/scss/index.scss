@@ -115,7 +115,15 @@ pre {
   }
 
   .card {
-    height: 140px;
+    height: 220px;
+  }
+
+  .card-header-extra-data {
+    flex-direction: column;
+
+    .card-header-filters {
+      display: none;
+    }
   }
 
   .card-header-icon-filter {

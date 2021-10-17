@@ -96,12 +96,12 @@ impl Component for TransactionCard {
                     </button>
                 </div>
 
-                <div class="card-header is-size-7">
+                <div class="card-header card-header-extra-data is-size-7">
                     <div class="card-header-from">
                         <p class="card-header-title">
                             <span>{ "From" }</span>
                             { crate::view_helpers::space() }
-                            <span class="has-text-weight-normal">{ from.clone() }</span>
+                            <span class="has-text-weight-normal tx-hash">{ from.clone() }</span>
                         </p>
                         <div class="card-header-filters pr-6">
                             <button
@@ -123,7 +123,7 @@ impl Component for TransactionCard {
                         <p class="card-header-title">
                             <span>{ "To" }</span>
                             { crate::view_helpers::space() }
-                            <span class="has-text-weight-normal">{ to.clone() }</span>
+                            <span class="has-text-weight-normal tx-hash">{ to.clone() }</span>
                         </p>
                         <div class="card-header-filters">
                             <button
