@@ -21,12 +21,14 @@ pub struct TransactionsQueryParams {
 
 async fn get_data(params: TransactionsQueryParams) -> anyhow::Result<Vec<Transaction>> {
     let start = SystemTime::now();
-    let since_the_epoch = start.duration_since(UNIX_EPOCH).expect("Time awent backwards");
+    let since_the_epoch = start.duration_since(UNIX_EPOCH).expect("Time went backwards");
     let max = since_the_epoch.as_secs();
 
     let mut min = max - SECONDS_IN_DAY;
     if let Some(a) = params.after {
-        min = a + 1;
+        // Prevent clients from asking too much
+        // data, or data that's too old
+        min = std::cmp::max(min, a + 1);
     }
 
     let result = redis::zrevrange_by_score(max, min).await?;
