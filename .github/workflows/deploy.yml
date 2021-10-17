@@ -21,6 +21,10 @@ jobs:
           username: neslinesli93
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: Set short hash
+        id: vars
+        run: echo "::set-output name=short_sha::$(git rev-parse --short HEAD)"
+
       - name: Build and push backend
         uses: docker/build-push-action@v2
         with:
@@ -29,7 +33,7 @@ jobs:
           push: true
           tags: |
             neslinesli93/interprether_backend:latest
-            neslinesli93/interprether_backend:${{ github.sha }}
+            neslinesli93/interprether_backend:${{ steps.vars.outputs.short_sha }}
           cache-from: type=registry,ref=neslinesli93/interprether_backend:buildcache
           cache-to: type=registry,ref=neslinesli93/interprether_backend:buildcache,mode=max
 
@@ -41,27 +45,30 @@ jobs:
           push: true
           tags: |
             neslinesli93/interprether_frontend:latest
-            neslinesli93/interprether_frontend:${{ github.sha }}
+            neslinesli93/interprether_frontend:${{ steps.vars.outputs.short_sha }}
           cache-from: type=registry,ref=neslinesli93/interprether_frontend:buildcache
           cache-to: type=registry,ref=neslinesli93/interprether_frontend:buildcache,mode=max
 
       - name: Copy files to server
         uses: Pendect/action-rsyncer@v1.1.0
         env:
-          DEPLOY_KEY: ${{secrets.DEPLOY_KEY}}
+          DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
         with:
           flags: "-avzr --delete"
           src: "./docker-compose.prod.yml"
-          dest: "root@${{secrets.DEPLOY_HOST}}:/root/docker-compose.yml"
+          dest: "root@${{ secrets.DEPLOY_HOST }}:/root/docker-compose.yml"
 
       - name: Restart containers
         uses: appleboy/ssh-action@master
+        env:
+          WEB3_PROVIDER_URL: ${{ secrets.WEB3_PROVIDER_URL }}
         with:
-          host: ${{secrets.DEPLOY_HOST}}
+          host: ${{ secrets.DEPLOY_HOST }}
           username: root
-          key: ${{secrets.DEPLOY_KEY}}
+          key: ${{ secrets.DEPLOY_KEY }}
           port: 22
+          envs: WEB3_PROVIDER_URL
           script: |
-            source ~/.bashrc
+            export WEB3_PROVIDER_URL=${{ secrets.WEB3_PROVIDER_URL }}
             docker-compose pull
             docker-compose up --detach
