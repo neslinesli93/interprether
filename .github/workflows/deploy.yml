@@ -62,5 +62,6 @@ jobs:
           key: ${{secrets.DEPLOY_KEY}}
           port: 22
           script: |
+            source ~/.bashrc
             docker-compose pull
-            WEB3_PROVIDER_URL=${{secrets.WEB3_PROVIDER_URL}} docker-compose up --detach
+            docker-compose up --detach
