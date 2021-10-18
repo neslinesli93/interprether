@@ -1,12 +1,14 @@
 @import "loader";
 
+$card-height: 150px;
+
 html {
   overflow-y: auto;
 }
 
 .card {
   margin: 24px;
-  height: 100px;
+  height: $card-height;
 
   &:first-child {
     margin-top: 1px;
@@ -37,8 +39,39 @@ html {
   }
 }
 
+.card-header {
+  box-shadow: none;
+}
+
 .card-header-title {
   overflow: hidden;
+  flex-grow: 0;
+}
+
+.card-header-icon-filter {
+  opacity: 0;
+}
+
+.card-header-tx:hover {
+  .card-header-icon-filter {
+    opacity: 1;
+  }
+}
+
+.card-header-from,
+.card-header-to {
+  display: flex;
+
+  &:hover {
+    .card-header-icon-filter {
+      opacity: 1;
+    }
+  }
+}
+
+.card-header-filters {
+  display: flex;
+  flex: 1;
 }
 
 .tx-hash {
@@ -51,15 +84,18 @@ html {
 }
 
 pre {
-  max-height: calc(100px - 38px);
+  max-height: calc($card-height - 38px);
   white-space: pre-wrap;
   background-color: #efefef;
 }
 
 .input {
-  margin-bottom: 2rem;
   margin-left: 24px;
   width: calc(100% - 24px);
+}
+
+.filters {
+  margin: 12px 24px 24px 24px;
 }
 
 .settings {
@@ -67,10 +103,6 @@ pre {
   justify-content: space-between;
   margin-bottom: 12px;
   margin-left: 24px;
-}
-
-.transactions-description {
-  flex: 1;
 }
 
 @media screen and (max-width: 768px) {
@@ -83,7 +115,19 @@ pre {
   }
 
   .card {
-    height: 120px;
+    height: 220px;
+  }
+
+  .card-header-extra-data {
+    flex-direction: column;
+
+    .card-header-filters {
+      display: none;
+    }
+  }
+
+  .card-header-icon-filter {
+    display: none;
   }
 }
 
@@ -91,6 +135,10 @@ pre {
 
 .root {
   overflow-y: auto;
+}
+
+.spacer {
+  will-change: transform;
 }
 
 /* Bulma hotfix */

@@ -1,5 +1,3 @@
-use yew::prelude::*;
-
 pub struct StringPart {
     pub s: String,
     pub t: StringPartType,
@@ -37,13 +35,4 @@ pub fn split_keep<'a>(text: &'a str, r: &'a str) -> Vec<StringPart> {
     }
 
     result
-}
-
-impl StringPart {
-    pub fn render(&self) -> Html {
-        match self.t {
-            StringPartType::Normal => html! { <span> { &self.s } </span> },
-            StringPartType::Highlight => html! { <mark> { &self.s } </mark> },
-        }
-    }
 }

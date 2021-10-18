@@ -1,4 +1,7 @@
+use crate::components::filter::TransactionFilter;
 use serde::Deserialize;
+use std::collections::HashMap;
+use std::sync::Arc;
 use yew::prelude::*;
 use yew::services::fetch::FetchTask;
 use yew::services::timeout::TimeoutTask;
@@ -12,6 +15,9 @@ pub enum Msg {
     // Filter
     DebounceFilter(String),
     EditFilter(String),
+    // Advanced filters
+    AddFilter(TransactionFilter),
+    RemoveFilter(TransactionFilter),
     // Toggle
     ToggleFeedPaused,
     // Virtual scroll
@@ -24,8 +30,12 @@ pub struct Model {
     pub transactions: Vec<Transaction>,
     pub loading: bool,
     pub error: Option<String>,
-    pub filter: Option<String>,
+    pub text_filter: Arc<Option<String>>,
     pub feed_paused: bool,
+    // Advanced filters
+    pub transaction_filters: Vec<TransactionFilter>,
+    pub inclusion_filters: HashMap<String, Vec<TransactionFilter>>,
+    pub exclusion_filters: HashMap<String, Vec<TransactionFilter>>,
     // Cmd bus
     pub link: ComponentLink<Self>,
     pub fetch_task: Option<FetchTask>,
@@ -41,7 +51,7 @@ pub struct Model {
     pub row_height: i32,
 }
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Properties)]
 pub struct Transaction {
     // Backend fields
     #[serde(rename = "h")]
@@ -50,6 +60,14 @@ pub struct Transaction {
     pub message: String,
     #[serde(rename = "t")]
     pub timestamp: u64,
+    #[serde(default = "default_address")]
+    pub from: String,
+    #[serde(default = "default_address")]
+    pub to: String,
     // Local model
     pub animate: Option<bool>,
+}
+
+fn default_address() -> String {
+    "-".to_string()
 }

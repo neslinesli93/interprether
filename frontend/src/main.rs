@@ -1,4 +1,9 @@
+use crate::components::filter::{Filter, TransactionFilterOperation};
+use crate::components::hero::Hero;
+use crate::components::transaction_card::TransactionCard;
 use crate::model::{Model, Msg, Transaction};
+use std::collections::HashMap;
+use std::sync::Arc;
 use yew::format::{Json, Nothing};
 use yew::prelude::*;
 use yew::services::fetch::{FetchService, FetchTask, Request, Response};
@@ -6,9 +11,10 @@ use yew::services::timeout::TimeoutService;
 use yew::virtual_dom::{VList, VNode};
 use yew::web_sys::Element;
 
+pub mod components;
 pub mod model;
 pub mod string;
-pub mod view;
+pub mod view_helpers;
 
 const SECONDS_IN_DAY: u64 = 86400;
 
@@ -17,117 +23,14 @@ const FETCH_INTERVAL: u64 = 5;
 
 const MOBILE_WIDTH: i32 = 768;
 const NODE_PADDING: i32 = 2;
-const ELEM_HEIGHT_DESKTOP: i32 = 100;
-const ELEM_HEIGHT_MOBILE: i32 = 120;
+const ELEM_HEIGHT_DESKTOP: i32 = 150;
+const ELEM_HEIGHT_MOBILE: i32 = 220;
 const ELEM_MARGIN: i32 = 24;
 
 fn current_timestamp() -> u64 {
     let current_date: js_sys::Date = js_sys::Date::new_0();
     let current_timestamp: f64 = current_date.get_time() / (1000_f64);
     current_timestamp as u64
-}
-
-impl Model {
-    // Transactions
-    fn fetch_transactions(&self, after: Option<u64>) -> FetchTask {
-        let callback = self
-            .link
-            .callback(move |response: Response<Json<anyhow::Result<Vec<Transaction>>>>| {
-                let (meta, Json(body)) = response.into_parts();
-
-                match (meta.status.is_success(), body) {
-                    (true, Ok(data)) => Msg::TransactionsFetched(data),
-                    (false, Ok(_)) => Msg::HttpError(format!("Generic error, received {}", meta.status)),
-                    (_, Err(error)) => Msg::HttpError(format!("{:?}", error)),
-                }
-            });
-
-        let uri = match after {
-            None => format!("{}{}", BACKEND_URL, "/transactions"),
-            Some(a) => format!("{}{}?after={}", BACKEND_URL, "/transactions", a),
-        };
-
-        let request = Request::get(uri).body(Nothing).expect("Failed to build request");
-
-        FetchService::fetch(request, callback).expect("Failed to start request")
-    }
-
-    fn filtered_transactions(&self) -> Vec<Transaction> {
-        match &self.filter {
-            Some(f) => {
-                let filtered: Vec<Transaction> = self
-                    .transactions
-                    .iter()
-                    .filter(|tx| tx.message.to_lowercase().contains(&f.to_lowercase()))
-                    .cloned()
-                    .collect();
-
-                filtered
-            }
-            None => self.transactions.to_owned(),
-        }
-    }
-
-    // View
-    fn view_loading(&self) -> Html {
-        if self.loading && !self.first_fetch_done {
-            html! {
-               <div class="loader-wrapper is-active">
-                   <div class="loader is-loading"></div>
-               </div>
-            }
-        } else {
-            VNode::from(VList::new())
-        }
-    }
-
-    fn view_error(&self) -> Html {
-        if self.error.is_some() {
-            html! {
-               <div>
-                    <span>{ format!("{:?}", self.error) }</span>
-               </div>
-            }
-        } else {
-            VNode::from(VList::new())
-        }
-    }
-
-    fn view_filter_description(&self) -> Html {
-        if self.filter.is_some() {
-            html! {
-                <>
-                    { view::common::space() }
-                    <span> { "(w/ filter)" } </span>
-                </>
-            }
-        } else {
-            VNode::from(VList::new())
-        }
-    }
-
-    // Virtual scroll
-    fn items_count(&self) -> i32 {
-        self.filtered_transactions().len() as i32
-    }
-
-    fn viewport_height(&self) -> i32 {
-        self.items_count() * self.row_height
-    }
-
-    fn start_index(&self) -> i32 {
-        let start_node = (self.scroll_top / self.row_height) - NODE_PADDING;
-        std::cmp::max(start_node, 0)
-    }
-
-    fn visible_items_count(&self) -> i32 {
-        let count = (self.root_height / self.row_height) + 2 * NODE_PADDING;
-        std::cmp::min(self.items_count() - self.start_index(), count)
-    }
-
-    fn offset_y(&self) -> i32 {
-        self.start_index() * self.row_height
-    }
 }
 
 impl Component for Model {
@@ -140,8 +43,11 @@ impl Component for Model {
             transactions: vec![],
             loading: false,
             error: None,
-            filter: None,
+            text_filter: Arc::new(None),
             feed_paused: false,
+            transaction_filters: vec![],
+            inclusion_filters: HashMap::new(),
+            exclusion_filters: HashMap::new(),
             link,
             fetch_task: None,
             debounce_task: None,
@@ -238,12 +144,50 @@ impl Component for Model {
             }
             Msg::EditFilter(filter) => {
                 if filter.trim().is_empty() {
-                    self.filter = None;
+                    self.text_filter = Arc::new(None);
                 } else {
-                    self.filter = Some(filter.trim().into())
+                    self.text_filter = Arc::new(Some(filter.trim().into()));
                 }
 
                 self.root_ref.cast::<Element>().unwrap().set_scroll_top(0);
+
+                true
+            }
+            Msg::AddFilter(filter) => {
+                self.transaction_filters.push(filter.clone());
+
+                let map = match filter.operation {
+                    TransactionFilterOperation::Include => &mut self.inclusion_filters,
+                    TransactionFilterOperation::Exclude => &mut self.exclusion_filters,
+                };
+
+                match map.get_mut(&filter.text) {
+                    Some(v) => v.push(filter),
+                    None => {
+                        map.insert(filter.text.clone(), vec![filter]);
+                    }
+                };
+
+                true
+            }
+            Msg::RemoveFilter(filter) => {
+                self.transaction_filters.retain(|f| f.ne(&filter));
+
+                let map = match filter.operation {
+                    TransactionFilterOperation::Include => &mut self.inclusion_filters,
+                    TransactionFilterOperation::Exclude => &mut self.exclusion_filters,
+                };
+
+                // Remove entry
+                if let Some(v) = map.get_mut(&filter.text) {
+                    v.retain(|f| f.ne(&filter))
+                }
+
+                // If resulting vec is empty, remove the key/value pair from the map
+                let len = map.get(&filter.text).map(|v| v.len()).unwrap_or(0);
+                if len == 0 {
+                    map.remove(&filter.text);
+                }
 
                 true
             }
@@ -287,7 +231,7 @@ impl Component for Model {
 
         html! {
             <>
-            {view::hero::render()}
+            <Hero />
 
             <section class="section">
                 <div class="container">
@@ -297,14 +241,23 @@ impl Component for Model {
 
                     <input class="input" type="search" placeholder="Search transactions" oninput=oninput />
 
+                    <div class="filters">
+                        <div class="field is-grouped is-grouped-multiline">
+                            {for self.transaction_filters.iter().map(|f| html! {
+                                <Filter
+                                    filter={f.clone()}
+                                    remove_filter={self.link.callback(Msg::RemoveFilter)} />
+                            })}
+                        </div>
+                    </div>
+
                     <div class="settings">
                         <span class="transactions-description">
                             { format!{"{} transactions in the last 24 hours", transactions.len()} }
-                            { self.view_filter_description() }
                         </span>
                         <label class="checkbox">
                             <input type="checkbox" onchange={self.link.callback(|_| Msg::ToggleFeedPaused)} checked={self.feed_paused} />
-                            { view::common::space() }
+                            { view_helpers::space() }
                             { "Pause feed" }
                         </label>
                     </div>
@@ -312,12 +265,13 @@ impl Component for Model {
                     <div class="root" ref=self.root_ref.clone() style=root_style onscroll={self.link.callback(|_| Msg::OnScroll)}>
                         <div class="viewport" ref=self.viewport_ref.clone() style=viewport_style>
                             <div class="spacer" ref=self.spacer_ref.clone() style=spacer_style>
-                                {for transactions
-                                    .iter()
-                                    .enumerate()
-                                    .filter(|&(i, _)| i >= min && i <= max)
-                                    .map(|(_, tx)| tx.render(now, self.filter.as_ref()))
-                                }
+                                {for transactions.iter().enumerate().filter(|&(i, _)| i >= min && i <= max).map(|(_, tx)| html! {
+                                    <TransactionCard
+                                        tx={tx.clone()}
+                                        now={now}
+                                        text_filter={self.text_filter.clone()}
+                                        add_filter={self.link.callback(Msg::AddFilter)} />
+                                })}
                             </div>
                         </div>
                     </div>
@@ -338,6 +292,133 @@ impl Component for Model {
             let initial_fetch = self.link.callback(|_| Msg::FetchTransactions);
             initial_fetch.emit(());
         }
+    }
+}
+
+impl Model {
+    // Transactions
+    fn fetch_transactions(&self, after: Option<u64>) -> FetchTask {
+        let callback = self
+            .link
+            .callback(move |response: Response<Json<anyhow::Result<Vec<Transaction>>>>| {
+                let (meta, Json(body)) = response.into_parts();
+
+                match (meta.status.is_success(), body) {
+                    (true, Ok(data)) => Msg::TransactionsFetched(data),
+                    (false, Ok(_)) => Msg::HttpError(format!("Generic error, received {}", meta.status)),
+                    (_, Err(error)) => Msg::HttpError(format!("{:?}", error)),
+                }
+            });
+
+        let uri = match after {
+            None => format!("{}{}", BACKEND_URL, "/transactions"),
+            Some(a) => format!("{}{}?after={}", BACKEND_URL, "/transactions", a),
+        };
+
+        let request = Request::get(uri).body(Nothing).expect("Failed to build request");
+
+        FetchService::fetch(request, callback).expect("Failed to start request")
+    }
+
+    fn in_inclusion_filters(&self, tx: &&Transaction) -> bool {
+        self.inclusion_filters.values().all(|v| {
+            v.iter()
+                .any(|r| r.text == tx.from || r.text == tx.to || r.text == tx.message)
+        })
+    }
+
+    fn in_exclusion_filters(&self, s: String) -> bool {
+        self.exclusion_filters
+            .get(&s)
+            .map(|v| v.iter().any(|r| r.text == s))
+            .unwrap_or(false)
+    }
+
+    fn filter_transaction(&self, tx: &&Transaction) -> bool {
+        let mut keep = if self.inclusion_filters.keys().len() > 0 {
+            self.in_inclusion_filters(tx)
+        } else {
+            true
+        };
+
+        if !keep {
+            return false;
+        }
+
+        keep = if self.exclusion_filters.keys().len() > 0 {
+            !(self.in_exclusion_filters(tx.message.clone())
+                || self.in_exclusion_filters(tx.from.clone())
+                || self.in_exclusion_filters(tx.to.clone()))
+        } else {
+            true
+        };
+
+        keep
+    }
+
+    fn filtered_transactions(&self) -> Vec<Transaction> {
+        if let Some(ref f) = *self.text_filter {
+            self.transactions
+                .iter()
+                .filter(|tx| tx.message.to_lowercase().contains(&f.to_lowercase()))
+                .filter(|tx| self.filter_transaction(tx))
+                .cloned()
+                .collect()
+        } else {
+            self.transactions
+                .iter()
+                .filter(|tx| self.filter_transaction(tx))
+                .cloned()
+                .collect()
+        }
+    }
+
+    // View
+    fn view_loading(&self) -> Html {
+        if self.loading && !self.first_fetch_done {
+            html! {
+               <div class="loader-wrapper is-active">
+                   <div class="loader is-loading"></div>
+               </div>
+            }
+        } else {
+            VNode::from(VList::new())
+        }
+    }
+
+    fn view_error(&self) -> Html {
+        if self.error.is_some() {
+            html! {
+               <div>
+                    <span>{ format!("{:?}", self.error) }</span>
+               </div>
+            }
+        } else {
+            VNode::from(VList::new())
+        }
+    }
+
+    // Virtual scroll
+    fn items_count(&self) -> i32 {
+        self.filtered_transactions().len() as i32
+    }
+
+    fn viewport_height(&self) -> i32 {
+        self.items_count() * self.row_height
+    }
+
+    fn start_index(&self) -> i32 {
+        let start_node = (self.scroll_top / self.row_height) - NODE_PADDING;
+        std::cmp::max(start_node, 0)
+    }
+
+    fn visible_items_count(&self) -> i32 {
+        let count = (self.root_height / self.row_height) + 2 * NODE_PADDING;
+        std::cmp::min(self.items_count() - self.start_index(), count)
+    }
+
+    fn offset_y(&self) -> i32 {
+        self.start_index() * self.row_height
     }
 }
 
