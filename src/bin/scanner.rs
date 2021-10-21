@@ -28,7 +28,11 @@ async fn main() -> Result<()> {
                 latest_known_block_number + 1
             };
 
-            let block = web3.eth().block_with_txs(block_number.into()).await?.unwrap();
+            let block = web3
+                .eth()
+                .block_with_txs(block_number.into())
+                .await?
+                .ok_or_else(|| anyhow::anyhow!("Block {} not found", block_number))?;
 
             let mut transactions: Vec<transaction::Transaction> = vec![];
             for tx in block.transactions.iter() {
