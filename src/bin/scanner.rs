@@ -2,6 +2,7 @@ use anyhow::Result;
 use dotenv::dotenv;
 use interprether::{redis, transaction};
 use std::time::Duration;
+use web3::types::Bytes;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -28,24 +29,22 @@ async fn main() -> Result<()> {
                 latest_known_block_number + 1
             };
 
-            let block = web3.eth().block_with_txs(block_number.into()).await?.unwrap();
+            let block = web3
+                .eth()
+                .block_with_txs(block_number.into())
+                .await?
+                .ok_or_else(|| anyhow::anyhow!("Block {} not found", block_number))?;
 
             let mut transactions: Vec<transaction::Transaction> = vec![];
             for tx in block.transactions.iter() {
-                let input = tx.input.clone();
-
-                let _ = std::str::from_utf8(&input.0).map(|message| {
-                    // Remove NULL bytes
-                    let cleaned_message = message.replace(char::from(0), "");
-                    if !cleaned_message.is_empty() {
-                        transactions.push(transaction::Transaction {
-                            hash: format!("{:?}", tx.hash),
-                            message: cleaned_message,
-                            timestamp: block.timestamp.as_u64(),
-                            from: tx.from.map(|from| format!("{:?}", from)),
-                            to: tx.to.map(|to| format!("{:?}", to)),
-                        });
-                    }
+                let _ = extract_message(tx.input.clone()).map(|message| {
+                    transactions.push(transaction::Transaction {
+                        message,
+                        hash: format!("{:?}", tx.hash),
+                        timestamp: block.timestamp.as_u64(),
+                        from: tx.from.map(|from| format!("{:?}", from)),
+                        to: tx.to.map(|to| format!("{:?}", to)),
+                    });
                 });
             }
 
@@ -61,5 +60,51 @@ async fn main() -> Result<()> {
         }
 
         tokio::time::sleep(Duration::from_secs(1)).await;
+    }
+}
+
+pub fn extract_message(input: Bytes) -> Result<String> {
+    let result = std::str::from_utf8(&input.0).map(|message| {
+        // Remove NULL bytes
+        message.replace(char::from(0), "").trim().to_string()
+    })?;
+
+    if result.is_empty() {
+        Err(anyhow::anyhow!("Empty input data"))
+    } else {
+        Ok(result)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_empty_message() {
+        let input: Vec<u8> = vec![];
+        let bytes: Bytes = input.into();
+        assert_eq!(extract_message(bytes).is_err(), true);
+    }
+
+    #[test]
+    fn test_null_message() {
+        let input: Vec<u8> = vec![0u8];
+        let bytes: Bytes = input.into();
+        assert_eq!(extract_message(bytes).is_err(), true);
+    }
+
+    #[test]
+    fn test_message_with_empty_chars() {
+        let input: Vec<u8> = vec![0u8, 32u8, 0u8];
+        let bytes: Bytes = input.into();
+        assert_eq!(extract_message(bytes).is_err(), true);
+    }
+
+    #[test]
+    fn test_message_with_message() {
+        let input: Vec<u8> = vec![0u8, 32u8, 104u8, 101u8, 108u8, 108u8, 111u8, 33u8, 32u8, 0u8];
+        let bytes: Bytes = input.into();
+        assert_eq!(extract_message(bytes).unwrap(), "hello!");
     }
 }
