@@ -75,3 +75,36 @@ pub fn extract_message(input: Bytes) -> Result<String> {
         Ok(result)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_empty_message() {
+        let input: Vec<u8> = vec![];
+        let bytes: Bytes = input.into();
+        assert_eq!(extract_message(bytes).is_err(), true);
+    }
+
+    #[test]
+    fn test_null_message() {
+        let input: Vec<u8> = vec![0u8];
+        let bytes: Bytes = input.into();
+        assert_eq!(extract_message(bytes).is_err(), true);
+    }
+
+    #[test]
+    fn test_message_with_empty_chars() {
+        let input: Vec<u8> = vec![0u8, 32u8, 0u8];
+        let bytes: Bytes = input.into();
+        assert_eq!(extract_message(bytes).is_err(), true);
+    }
+
+    #[test]
+    fn test_message_with_message() {
+        let input: Vec<u8> = vec![0u8, 32u8, 104u8, 101u8, 108u8, 108u8, 111u8, 33u8, 32u8, 0u8];
+        let bytes: Bytes = input.into();
+        assert_eq!(extract_message(bytes).unwrap(), "hello!");
+    }
+}
