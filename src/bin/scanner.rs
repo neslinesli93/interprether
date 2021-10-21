@@ -2,6 +2,7 @@ use anyhow::Result;
 use dotenv::dotenv;
 use interprether::{redis, transaction};
 use std::time::Duration;
+use web3::types::Bytes;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -36,20 +37,14 @@ async fn main() -> Result<()> {
 
             let mut transactions: Vec<transaction::Transaction> = vec![];
             for tx in block.transactions.iter() {
-                let input = tx.input.clone();
-
-                let _ = std::str::from_utf8(&input.0).map(|message| {
-                    // Remove NULL bytes
-                    let cleaned_message = message.replace(char::from(0), "");
-                    if !cleaned_message.is_empty() {
-                        transactions.push(transaction::Transaction {
-                            hash: format!("{:?}", tx.hash),
-                            message: cleaned_message,
-                            timestamp: block.timestamp.as_u64(),
-                            from: tx.from.map(|from| format!("{:?}", from)),
-                            to: tx.to.map(|to| format!("{:?}", to)),
-                        });
-                    }
+                let _ = extract_message(tx.input.clone()).map(|message| {
+                    transactions.push(transaction::Transaction {
+                        message,
+                        hash: format!("{:?}", tx.hash),
+                        timestamp: block.timestamp.as_u64(),
+                        from: tx.from.map(|from| format!("{:?}", from)),
+                        to: tx.to.map(|to| format!("{:?}", to)),
+                    });
                 });
             }
 
@@ -65,5 +60,18 @@ async fn main() -> Result<()> {
         }
 
         tokio::time::sleep(Duration::from_secs(1)).await;
+    }
+}
+
+pub fn extract_message(input: Bytes) -> Result<String> {
+    let result = std::str::from_utf8(&input.0).map(|message| {
+        // Remove NULL bytes
+        message.replace(char::from(0), "").trim().to_string()
+    })?;
+
+    if result.is_empty() {
+        Err(anyhow::anyhow!("Empty input data"))
+    } else {
+        Ok(result)
     }
 }
