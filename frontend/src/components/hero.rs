@@ -26,7 +26,12 @@ impl Component for Hero {
                         <div class="container">
                             <div class="navbar-end">
                                 <span class="navbar-item">
-                                    <a class="button is-dark is-outlined" href="https://github.com/neslinesli93/interprether" target="_blank" rel="noopener noreferrer">
+                                    <a class="button is-small is-primary is-outlined" href="https://gitcoin.co/grants/3838/interprether" target="_blank" rel="noopener noreferrer">
+                                        <span>{ "Gitcoin ➚" }</span>
+                                    </a>
+                                </span>
+                                <span class="navbar-item">
+                                    <a class="button is-small is-dark is-outlined" href="https://github.com/neslinesli93/interprether" target="_blank" rel="noopener noreferrer">
                                         <span class="icon">
                                             <i class="fab fa-github"></i>
                                         </span>
