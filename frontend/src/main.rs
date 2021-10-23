@@ -320,8 +320,8 @@ impl Component for Model {
             }
 
             // Check if query string contains some filters
-            let mut query_string = window.location().search().unwrap_or("".to_string());
-            if query_string.len() >= 1 {
+            let mut query_string = window.location().search().unwrap_or_else(|_| "".to_string());
+            if !query_string.is_empty() {
                 // This is apparently a quirk of serde_qs: the query string must start
                 // with `&`, otherwise it will fail to decode the first field
                 query_string.replace_range(0..1, "&");
@@ -332,7 +332,7 @@ impl Component for Model {
             // In case the are params in query string, init app state
             let mut messages: Vec<Msg> = vec![];
             if let Some(text_filter) = params.text_filter {
-                messages.push(Msg::EditFilter(text_filter.clone()));
+                messages.push(Msg::EditFilter(text_filter));
             }
 
             if let Some(filters) = params.filters {
@@ -340,9 +340,7 @@ impl Component for Model {
             }
 
             if !messages.is_empty() {
-                let initial_state = self
-                    .link
-                    .batch_callback(move |_| messages.iter().cloned().collect::<Vec<Msg>>());
+                let initial_state = self.link.batch_callback(move |_| messages.to_vec());
                 initial_state.emit(());
             }
 
@@ -481,10 +479,7 @@ impl Model {
 
     // URL state
     fn save_filters_to_url(&self) {
-        let text_filter = match (*self.text_filter).clone() {
-            Some(f) => Some(f),
-            None => None,
-        };
+        let text_filter = (*self.text_filter).clone();
 
         let filters = if self.transaction_filters.is_empty() {
             None
