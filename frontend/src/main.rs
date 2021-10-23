@@ -167,6 +167,8 @@ impl Component for Model {
 
                 self.root_ref.cast::<Element>().unwrap().set_scroll_top(0);
 
+                self.save_filters_to_url();
+
                 true
             }
             Msg::AddFilter(filter) => {
@@ -183,6 +185,8 @@ impl Component for Model {
                         map.insert(filter.text.clone(), vec![filter]);
                     }
                 };
+
+                self.save_filters_to_url();
 
                 true
             }
@@ -205,29 +209,9 @@ impl Component for Model {
                     map.remove(&filter.text);
                 }
 
+                self.save_filters_to_url();
+
                 true
-            }
-            Msg::GenerateShareableUrl => {
-                let text_filter = match (*self.text_filter).clone() {
-                    Some(f) => Some(f),
-                    None => None,
-                };
-
-                let filters = if self.transaction_filters.is_empty() {
-                    None
-                } else {
-                    Some(self.transaction_filters.clone())
-                };
-
-                let params = QueryParams { text_filter, filters };
-                let encoded = serde_qs::to_string(&params).unwrap();
-
-                // yew::services::ConsoleService::log(format!("encoded: {:?}", encoded).as_str());
-                let window = yew::utils::window();
-                let url = format!("{}?{}", window.location().origin().unwrap(), encoded);
-                window.location().set_href(&url).unwrap();
-
-                false
             }
             Msg::ToggleFeedPaused => {
                 self.feed_paused = !self.feed_paused;
@@ -283,9 +267,6 @@ impl Component for Model {
                     {self.view_error()}
 
                     <input class="input" type="search" placeholder="Search transactions" value={filter} oninput=oninput />
-                    <button onclick={self.link.callback(|_| Msg::GenerateShareableUrl)}>
-                        {"Share"}
-                    </button>
 
                     <div class="filters">
                         <div class="field is-grouped is-grouped-multiline">
@@ -307,6 +288,8 @@ impl Component for Model {
                             { "Pause feed" }
                         </label>
                     </div>
+
+                    <hr />
 
                     <div class="root" ref=self.root_ref.clone() style=root_style onscroll={self.link.callback(|_| Msg::OnScroll)}>
                         <div class="viewport" ref=self.viewport_ref.clone() style=viewport_style>
@@ -494,6 +477,29 @@ impl Model {
 
     fn offset_y(&self) -> i32 {
         self.start_index() * self.row_height
+    }
+
+    // URL state
+    fn save_filters_to_url(&self) {
+        let text_filter = match (*self.text_filter).clone() {
+            Some(f) => Some(f),
+            None => None,
+        };
+
+        let filters = if self.transaction_filters.is_empty() {
+            None
+        } else {
+            Some(self.transaction_filters.clone())
+        };
+
+        let params = QueryParams { text_filter, filters };
+        let encoded = serde_qs::to_string(&params).unwrap_or_default();
+
+        let window = yew::utils::window();
+        let url = format!("{}?{}", window.location().origin().unwrap(), encoded);
+
+        let history = window.history().unwrap();
+        history.replace_state_with_url(&"".into(), "", Some(&url)).unwrap();
     }
 }
 
