@@ -59,7 +59,7 @@ impl Component for Filter {
         html! {
             <div class="control">
                 <div class="tags has-addons">
-                    <span class="tag is-link">
+                    <span class="tag is-info">
                         { self.render_operation() }
                         { self.render_field() }
                     </span>
