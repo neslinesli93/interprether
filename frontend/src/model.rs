@@ -6,6 +6,7 @@ use yew::prelude::*;
 use yew::services::fetch::FetchTask;
 use yew::services::timeout::TimeoutTask;
 
+#[derive(Clone)]
 pub enum Msg {
     // Transactions
     FetchTransactions,

@@ -1,13 +1,14 @@
 @import "loader";
 
 $card-height: 150px;
+$card-horizontal-margin: 24px;
 
 html {
   overflow-y: auto;
 }
 
 .card {
-  margin: 24px;
+  margin: $card-horizontal-margin;
   height: $card-height;
 
   &:first-child {
@@ -90,24 +91,35 @@ pre {
 }
 
 .input {
-  margin-left: 24px;
-  width: calc(100% - 24px);
+  margin-left: $card-horizontal-margin;
+  width: calc(100% - #{$card-horizontal-margin});
 }
 
 .filters {
-  margin: 12px 24px 24px 24px;
+  margin: 12px $card-horizontal-margin 24px;
 }
 
 .settings {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   margin-bottom: 12px;
-  margin-left: 24px;
+  margin-left: $card-horizontal-margin;
+}
+
+.transactions-description {
+  display: flex;
+  align-items: center;
+}
+
+hr {
+  margin-left: $card-horizontal-margin;
 }
 
 @media screen and (max-width: 768px) {
   .settings {
     flex-direction: column-reverse;
+    align-items: flex-start;
   }
 
   .transactions-description {

@@ -86,7 +86,7 @@ impl Component for TransactionCard {
                             class="card-header-icon card-header-icon-filter"
                             title="Filter out message"
                             onclick={self.props.add_filter.reform(move |_| TransactionFilter{field: TransactionFilterField::Message, operation: TransactionFilterOperation::Exclude, text: message_copy.clone()})}>
-                            <i class="fas fa-search-minus" aria-hidden="true"></i>
+                                <i class="fas fa-search-minus" aria-hidden="true"></i>
                         </button>
                     </div>
                     <button class="card-header-icon" title="View on Etherscan">
@@ -114,7 +114,7 @@ impl Component for TransactionCard {
                                 class="card-header-icon card-header-icon-filter"
                                 title="Filter out sender"
                                 onclick={self.props.add_filter.reform(move |_| TransactionFilter{field: TransactionFilterField::From, operation: TransactionFilterOperation::Exclude, text: from_copy.clone()})}>
-                                <i class="fas fa-search-minus" aria-hidden="true"></i>
+                                    <i class="fas fa-search-minus" aria-hidden="true"></i>
                             </button>
                         </div>
                     </div>
@@ -136,7 +136,7 @@ impl Component for TransactionCard {
                                 class="card-header-icon card-header-icon-filter"
                                 title="Filter out receiver"
                                 onclick={self.props.add_filter.reform(move |_| TransactionFilter{field: TransactionFilterField::To, operation: TransactionFilterOperation::Exclude, text: to_copy.clone()})}>
-                                <i class="fas fa-search-minus" aria-hidden="true"></i>
+                                    <i class="fas fa-search-minus" aria-hidden="true"></i>
                             </button>
                         </div>
                     </div>

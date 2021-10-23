@@ -1,21 +1,22 @@
+use serde::{Deserialize, Serialize};
 use yew::prelude::*;
 use yew::virtual_dom::{VList, VNode};
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
 pub struct TransactionFilter {
     pub field: TransactionFilterField,
     pub operation: TransactionFilterOperation,
     pub text: String,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
 pub enum TransactionFilterField {
     From,
     To,
     Message,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
 pub enum TransactionFilterOperation {
     Include,
     Exclude,
@@ -58,7 +59,7 @@ impl Component for Filter {
         html! {
             <div class="control">
                 <div class="tags has-addons">
-                    <span class="tag is-link">
+                    <span class="tag is-info">
                         { self.render_operation() }
                         { self.render_field() }
                     </span>

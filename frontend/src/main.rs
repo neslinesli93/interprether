@@ -1,7 +1,8 @@
-use crate::components::filter::{Filter, TransactionFilterOperation};
+use crate::components::filter::{Filter, TransactionFilter, TransactionFilterOperation};
 use crate::components::hero::Hero;
 use crate::components::transaction_card::TransactionCard;
 use crate::model::{Model, Msg, Transaction};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use yew::format::{Json, Nothing};
@@ -26,6 +27,21 @@ const NODE_PADDING: i32 = 2;
 const ELEM_HEIGHT_DESKTOP: i32 = 150;
 const ELEM_HEIGHT_MOBILE: i32 = 220;
 const ELEM_MARGIN: i32 = 24;
+
+#[derive(Debug, PartialEq, Deserialize, Serialize)]
+struct QueryParams {
+    text_filter: Option<String>,
+    filters: Option<Vec<TransactionFilter>>,
+}
+
+impl Default for QueryParams {
+    fn default() -> Self {
+        QueryParams {
+            text_filter: None,
+            filters: None,
+        }
+    }
+}
 
 fn current_timestamp() -> u64 {
     let current_date: js_sys::Date = js_sys::Date::new_0();
@@ -151,6 +167,8 @@ impl Component for Model {
 
                 self.root_ref.cast::<Element>().unwrap().set_scroll_top(0);
 
+                self.save_filters_to_url();
+
                 true
             }
             Msg::AddFilter(filter) => {
@@ -167,6 +185,8 @@ impl Component for Model {
                         map.insert(filter.text.clone(), vec![filter]);
                     }
                 };
+
+                self.save_filters_to_url();
 
                 true
             }
@@ -188,6 +208,8 @@ impl Component for Model {
                 if len == 0 {
                     map.remove(&filter.text);
                 }
+
+                self.save_filters_to_url();
 
                 true
             }
@@ -229,6 +251,11 @@ impl Component for Model {
         let min = self.start_index() as usize;
         let max = (self.start_index() + self.visible_items_count() - 1) as usize;
 
+        let filter = match (*self.text_filter).clone() {
+            Some(f) => f,
+            None => "".to_string(),
+        };
+
         html! {
             <>
             <Hero />
@@ -239,7 +266,7 @@ impl Component for Model {
 
                     {self.view_error()}
 
-                    <input class="input" type="search" placeholder="Search transactions" oninput=oninput />
+                    <input class="input" type="search" placeholder="Search transactions" value={filter} oninput=oninput />
 
                     <div class="filters">
                         <div class="field is-grouped is-grouped-multiline">
@@ -262,6 +289,8 @@ impl Component for Model {
                         </label>
                     </div>
 
+                    <hr />
+
                     <div class="root" ref=self.root_ref.clone() style=root_style onscroll={self.link.callback(|_| Msg::OnScroll)}>
                         <div class="viewport" ref=self.viewport_ref.clone() style=viewport_style>
                             <div class="spacer" ref=self.spacer_ref.clone() style=spacer_style>
@@ -283,12 +312,39 @@ impl Component for Model {
 
     fn rendered(&mut self, first_render: bool) {
         if first_render {
+            // Init fixed row height based on window size
             let window = yew::utils::window();
             let width = window.inner_width().unwrap().as_f64().unwrap() as i32;
             if width <= MOBILE_WIDTH {
                 self.row_height = ELEM_HEIGHT_MOBILE + ELEM_MARGIN;
             }
 
+            // Check if query string contains some filters
+            let mut query_string = window.location().search().unwrap_or_else(|_| "".to_string());
+            if !query_string.is_empty() {
+                // This is apparently a quirk of serde_qs: the query string must start
+                // with `&`, otherwise it will fail to decode the first field
+                query_string.replace_range(0..1, "&");
+            }
+            let qs_config = serde_qs::Config::new(5, false);
+            let params: QueryParams = qs_config.deserialize_str(&query_string).unwrap_or_default();
+
+            // In case the are params in query string, init app state
+            let mut messages: Vec<Msg> = vec![];
+            if let Some(text_filter) = params.text_filter {
+                messages.push(Msg::EditFilter(text_filter));
+            }
+
+            if let Some(filters) = params.filters {
+                filters.iter().for_each(|f| messages.push(Msg::AddFilter(f.clone())));
+            }
+
+            if !messages.is_empty() {
+                let initial_state = self.link.batch_callback(move |_| messages.to_vec());
+                initial_state.emit(());
+            }
+
+            // Fetch first batch of transactions
             let initial_fetch = self.link.callback(|_| Msg::FetchTransactions);
             initial_fetch.emit(());
         }
@@ -419,6 +475,26 @@ impl Model {
 
     fn offset_y(&self) -> i32 {
         self.start_index() * self.row_height
+    }
+
+    // URL state
+    fn save_filters_to_url(&self) {
+        let text_filter = (*self.text_filter).clone();
+
+        let filters = if self.transaction_filters.is_empty() {
+            None
+        } else {
+            Some(self.transaction_filters.clone())
+        };
+
+        let params = QueryParams { text_filter, filters };
+        let encoded = serde_qs::to_string(&params).unwrap_or_default();
+
+        let window = yew::utils::window();
+        let url = format!("{}?{}", window.location().origin().unwrap(), encoded);
+
+        let history = window.history().unwrap();
+        history.replace_state_with_url(&"".into(), "", Some(&url)).unwrap();
     }
 }
 

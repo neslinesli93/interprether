@@ -26,7 +26,7 @@ impl Component for Hero {
                         <div class="container">
                             <div class="navbar-end">
                                 <span class="navbar-item">
-                                    <a class="button" href="https://github.com/neslinesli93/interprether" target="_blank" rel="noopener noreferrer">
+                                    <a class="button is-dark is-outlined" href="https://github.com/neslinesli93/interprether" target="_blank" rel="noopener noreferrer">
                                         <span class="icon">
                                             <i class="fab fa-github"></i>
                                         </span>
