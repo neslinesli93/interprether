@@ -339,22 +339,28 @@ impl Component for Model {
             // Check if query string contains some filters
             let mut query_string = window.location().search().unwrap_or("".to_string());
             if query_string.len() >= 1 {
+                // This is apparently a quirk of serde_qs: the query string must start
+                // with `&`, otherwise it will fail to decode the first field
                 query_string.replace_range(0..1, "&");
             }
             let qs_config = serde_qs::Config::new(5, false);
             let params: QueryParams = qs_config.deserialize_str(&query_string).unwrap_or_default();
-            yew::services::ConsoleService::log(format!("params: {:?}", params).as_str());
 
+            // In case the are params in query string, init app state
+            let mut messages: Vec<Msg> = vec![];
             if let Some(text_filter) = params.text_filter {
-                self.link
-                    .callback(move |_| Msg::EditFilter(text_filter.clone()))
-                    .emit(());
+                messages.push(Msg::EditFilter(text_filter.clone()));
             }
 
-            if let Some(v) = params.filters {
-                for filter in v {
-                    self.link.callback(move |_| Msg::AddFilter(filter.clone())).emit(());
-                }
+            if let Some(filters) = params.filters {
+                filters.iter().for_each(|f| messages.push(Msg::AddFilter(f.clone())));
+            }
+
+            if !messages.is_empty() {
+                let initial_state = self
+                    .link
+                    .batch_callback(move |_| messages.iter().cloned().collect::<Vec<Msg>>());
+                initial_state.emit(());
             }
 
             // Fetch first batch of transactions
