@@ -28,19 +28,10 @@ const ELEM_HEIGHT_DESKTOP: i32 = 150;
 const ELEM_HEIGHT_MOBILE: i32 = 220;
 const ELEM_MARGIN: i32 = 24;
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Default, PartialEq, Deserialize, Serialize)]
 struct QueryParams {
     text_filter: Option<String>,
     filters: Option<Vec<TransactionFilter>>,
-}
-
-impl Default for QueryParams {
-    fn default() -> Self {
-        QueryParams {
-            text_filter: None,
-            filters: None,
-        }
-    }
 }
 
 fn current_timestamp() -> u64 {
