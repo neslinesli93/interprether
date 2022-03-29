@@ -1,6 +1,7 @@
-FROM rust:1.54
+FROM rust:1.59
 
-RUN cargo install --force trunk wasm-bindgen-cli
+RUN cargo install trunk --version 0.14.0
+RUN cargo install wasm-bindgen-cli --version 0.2.79
 RUN rustup target add wasm32-unknown-unknown
 
 RUN groupadd --gid 1000 app && \

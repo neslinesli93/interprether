@@ -5,9 +5,9 @@ args = ["build", "--release"]
 [tasks.web]
 command = "cargo"
 args = ["run", "--release"]
-watch = { ignore_pattern = "frontend/*" }
+watch = { ignore_pattern = "frontend/*", version = "8.1.1" }
 
 [tasks.scanner]
 command = "cargo"
 args = ["run", "--release", "--bin", "scanner"]
-watch = { ignore_pattern = "frontend/*" }
+watch = { ignore_pattern = "frontend/*", version = "8.1.1" }
