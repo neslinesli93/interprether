@@ -1,5 +1,5 @@
 use crate::components::filter::TransactionFilter;
-use serde::Deserialize;
+use serde::{Deserialize, Deserializer};
 use std::collections::HashMap;
 use std::sync::Arc;
 use yew::prelude::*;
@@ -61,14 +61,17 @@ pub struct Transaction {
     pub message: String,
     #[serde(rename = "t")]
     pub timestamp: u64,
-    #[serde(default = "default_address")]
+    #[serde(deserialize_with = "default_address")]
     pub from: String,
-    #[serde(default = "default_address")]
+    #[serde(deserialize_with = "default_address")]
     pub to: String,
     // Local model
     pub animate: Option<bool>,
 }
 
-fn default_address() -> String {
-    "-".to_string()
+fn default_address<'de, D>(d: D) -> Result<String, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    Deserialize::deserialize(d).map(|x: Option<_>| x.unwrap_or_else(|| "-".to_string()))
 }
